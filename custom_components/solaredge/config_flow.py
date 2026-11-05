@@ -4,7 +4,6 @@ import socket
 from typing import TYPE_CHECKING, Any, override
 
 from aiohttp import ClientError, ClientResponseError
-import aiosolaredge
 import probatio
 from solaredge_web import SolarEdgeWeb
 
@@ -19,6 +18,7 @@ from homeassistant.data_entry_flow import section
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.util import slugify
 
+from .api import SolarEdge
 from .const import (
     CONF_SECTION_API_AUTH,
     CONF_SECTION_WEB_AUTH,
@@ -53,7 +53,7 @@ class SolarEdgeConfigFlow(ConfigFlow, domain=DOMAIN):
     async def _async_check_site(self, site_id: str, api_key: str) -> bool:
         """Check if we can connect to the soleredge api service."""
         session = async_get_clientsession(self.hass)
-        api = aiosolaredge.SolarEdge(api_key, session)
+        api = SolarEdge(api_key, session)
         try:
             response = await api.get_details(site_id)
             if response["details"]["status"].lower() != "active":

@@ -12,6 +12,15 @@ de ingebouwde versie. Bestaande SolarEdge-configuraties blijven daardoor gewoon
 werken. In het log verschijnt dan de normale waarschuwing dat een custom
 integratie de ingebouwde versie vervangt.
 
+### Verschillen met de core-integratie
+
+- De client voor de SolarEdge Monitoring API zit in de integratie zelf
+  ([`api.py`](custom_components/solaredge/api.py)), gebaseerd op
+  [aiosolaredge](https://github.com/bdraco/aiosolaredge) 1.0.2 (MIT-licentie).
+  Het pip-pakket `aiosolaredge` is daardoor niet meer nodig.
+- Het pakket `solaredge-web` (statistieken per paneel) is nog wel nodig.
+  Home Assistant installeert het automatisch.
+
 ## Vereisten
 
 - Home Assistant **2026.11.0** of nieuwer (de code gebruikt API's en
@@ -47,6 +56,9 @@ Geef het site-ID op en minstens één van de twee manieren van inloggen:
 
 1. Kopieer de bestanden uit `homeassistant/components/solaredge` van de gewenste
    release-tag naar `custom_components/solaredge`, behalve `strings.json`.
+   Vervang daarna `from aiosolaredge import SolarEdge` door
+   `from .api import SolarEdge` en haal `aiosolaredge` weg uit `requirements` en
+   `loggers` in `manifest.json`.
 2. Zet `strings.json` om naar `translations/en.json`. Vervang daarbij elke
    `[%key:...%]`-verwijzing door de tekst zelf (zie `homeassistant/strings.json`
    in core), want custom integraties lossen die verwijzingen niet op.

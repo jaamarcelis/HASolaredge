@@ -6,7 +6,6 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, override
 
 from aiohttp import ClientResponseError
-from aiosolaredge import SolarEdge
 from solaredge_web import EnergyData, SolarEdgeWeb
 
 from homeassistant.components.recorder import get_instance
@@ -28,6 +27,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.util import dt as dt_util, slugify, snakecase
 from homeassistant.util.unit_conversion import EnergyConverter
 
+from .api import SolarEdge
 from .const import (
     CONF_SITE_ID,
     DETAILS_UPDATE_DELAY,

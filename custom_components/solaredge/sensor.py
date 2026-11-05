@@ -3,8 +3,6 @@
 from dataclasses import dataclass
 from typing import Any, override
 
-from aiosolaredge import SolarEdge
-
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -21,6 +19,7 @@ from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
 )
 
+from .api import SolarEdge
 from .const import CONF_SITE_ID, DATA_API_CLIENT, DATA_SERVICES, DOMAIN, LOGGER
 from .coordinator import (
     SolarEdgeDataService,

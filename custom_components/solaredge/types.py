@@ -2,10 +2,9 @@
 
 from typing import TypedDict
 
-from aiosolaredge import SolarEdge
-
 from homeassistant.config_entries import ConfigEntry
 
+from .api import SolarEdge
 from .coordinator import SolarEdgeDataService, SolarEdgeModulesCoordinator
 
 type SolarEdgeConfigEntry = ConfigEntry[SolarEdgeData]

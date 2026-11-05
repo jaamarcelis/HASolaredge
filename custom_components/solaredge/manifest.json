@@ -13,7 +13,7 @@
   "documentation": "https://www.home-assistant.io/integrations/solaredge",
   "integration_type": "device",
   "iot_class": "cloud_polling",
-  "loggers": ["aiosolaredge", "solaredge_web"],
-  "requirements": ["aiosolaredge==1.0.2", "solaredge-web==0.5.0"],
+  "loggers": ["solaredge_web"],
+  "requirements": ["solaredge-web==0.5.0"],
   "version": "2026.11.0"
 }
