@@ -1,36 +1,36 @@
 {
+  "application_credentials": {
+    "description": "SolarEdge uses OAuth 2.0 (Site Access). Sign in to the [SolarEdge developer console]({developer_url}) with your SolarEdge account, create a **Site Access** application for the Monitoring API with the scopes {scopes}, and register `{redirect_url}` as redirect URI. Then enter the client ID and client secret of that application here."
+  },
   "config": {
     "abort": {
-      "already_configured": "Device is already configured"
+      "already_configured": "This site is already configured",
+      "cannot_connect": "Failed to connect to the SolarEdge Monitoring API",
+      "missing_configuration": "The integration is not configured. Add application credentials first.",
+      "reauth_successful": "Re-authentication was successful",
+      "site_not_active": "The SolarEdge site is not active",
+      "site_not_authorized": "The authorization does not give access to site {site_id}. Choose this site on the SolarEdge consent screen and try again.",
+      "wrong_site": "The authorization is for a different site than the one of this entry"
     },
     "error": {
-      "already_configured": "Device is already configured",
-      "cannot_connect": "Failed to connect",
-      "invalid_api_key": "Invalid API key",
-      "site_not_active": "The site is not active for the provided API key",
-      "unknown": "Unexpected error"
+      "invalid_site_id": "The site ID must be a number"
     },
     "step": {
-      "reconfigure": {
-        "data": {
-          "api_key": "API key"
-        },
-        "data_description": {
-          "api_key": "Your SolarEdge Monitoring API key, created in the SolarEdge monitoring portal"
-        },
-        "description": "Update your API key for site {site_id}.",
-        "title": "Reconfigure SolarEdge"
+      "pick_implementation": {
+        "title": "Pick authentication method"
+      },
+      "reauth_confirm": {
+        "description": "Authorize Home Assistant again to access SolarEdge site {site_id}. This is needed when the authorization expired or was revoked, and once after upgrading from the SolarEdge API v1 (API key).",
+        "title": "Re-authenticate SolarEdge"
       },
       "user": {
         "data": {
-          "api_key": "API key",
-          "name": "The name of this installation",
-          "site_id": "The SolarEdge site ID"
+          "site_id": "Site ID"
         },
         "data_description": {
-          "api_key": "Your SolarEdge Monitoring API key, created in the SolarEdge monitoring portal"
+          "site_id": "The ID of your SolarEdge site, shown in the monitoring portal and the mySolarEdge app. On the SolarEdge consent screen, choose this same site."
         },
-        "description": "Provide your site ID and API key",
+        "description": "Enter the site ID. You will then be sent to SolarEdge to sign in with your homeowner account and approve access.",
         "title": "Set up your SolarEdge integration"
       }
     }
@@ -101,9 +101,6 @@
       "selfconsumption_energy": {
         "name": "Self-consumed energy"
       },
-      "sensors": {
-        "name": "Sensors"
-      },
       "site_details": {
         "name": "Site details"
       },
@@ -133,22 +130,53 @@
   },
   "exceptions": {
     "api_request_failed": {
-      "message": "Error requesting {service} data: {status}"
+      "message": "Error requesting data from SolarEdge: HTTP {status}"
     },
-    "cannot_retrieve_details": {
-      "message": "Could not retrieve details from SolarEdge API"
+    "auth_failed": {
+      "message": "SolarEdge rejected the authorization, re-authentication is required"
     },
-    "data_unavailable": {
-      "message": "{service} data not available from API"
+    "cannot_connect": {
+      "message": "Failed to connect to the SolarEdge Monitoring API"
     },
-    "missing_data": {
-      "message": "Missing {service} data, skipping update"
+    "credit_limit_reached": {
+      "message": "The monthly SolarEdge API credit limit is reached"
     },
-    "missing_details": {
-      "message": "Missing details data in SolarEdge response"
+    "oauth_required": {
+      "message": "The SolarEdge API v1 is shut down. Authorize the integration with SolarEdge (OAuth) to continue."
+    },
+    "rate_limited": {
+      "message": "Too many SolarEdge API calls per minute, retrying later"
     },
     "site_not_active": {
       "message": "The SolarEdge site is not active"
+    }
+  },
+  "issues": {
+    "credit_limit_reached": {
+      "title": "SolarEdge API credit limit reached",
+      "description": "The monthly credit limit of your SolarEdge developer account is reached, so no data is updated until the next billing cycle. Lower the monthly credit budget in the integration options so the update interval becomes longer, or upgrade your tier in the SolarEdge developer console."
+    },
+    "power_flow_tier": {
+      "title": "SolarEdge power flow not available",
+      "description": "The Advanced power flow API is not available for your SolarEdge developer account ({detail}). It requires the Business Pro or Enterprise tier. Disable the Advanced power flow option of the integration; the power sensors are then based on 15-minute telemetry."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "advanced_power_flow": "Use Advanced power flow",
+          "credit_budget": "Monthly credit budget",
+          "update_interval": "Update interval"
+        },
+        "data_description": {
+          "advanced_power_flow": "Live power values from the Advanced Monitoring API (Business Pro or Enterprise tier, ~8,640 credits per month). When off, power values come from the latest 15 minutes of telemetry.",
+          "credit_budget": "Credits per month this integration may use. The Free tier has 2,000 credits per month for the whole developer account.",
+          "update_interval": "Minutes between updates, at least {min_interval}. 0 calculates the interval from the credit budget."
+        },
+        "description": "Current update interval: {interval} minutes, estimated usage: {credits} credits per month. Every successful API call costs 1 credit.",
+        "title": "SolarEdge options"
+      }
     }
   }
 }

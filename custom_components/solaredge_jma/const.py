@@ -1,4 +1,4 @@
-"""Constants for the SolarEdge Monitoring API."""
+"""Constants for the SolarEdge (JMA) integration."""
 
 from datetime import timedelta
 import logging
@@ -8,18 +8,42 @@ DOMAIN = "solaredge_jma"
 
 LOGGER = logging.getLogger(__package__)
 
-DATA_API_CLIENT: Final = "api_client"
-DATA_SERVICES: Final = "data_services"
-
-# Config for solaredge monitoring api requests.
+# Config entry data
 CONF_SITE_ID = "site_id"
-DEFAULT_NAME = "SolarEdge"
 
-OVERVIEW_UPDATE_DELAY = timedelta(minutes=15)
-DETAILS_UPDATE_DELAY = timedelta(hours=12)
-INVENTORY_UPDATE_DELAY = timedelta(hours=12)
-POWER_FLOW_UPDATE_DELAY = timedelta(minutes=15)
-ENERGY_DETAILS_DELAY = timedelta(minutes=15)
-STORAGE_DATA_UPDATE_DELAY = timedelta(hours=4)
+# Options
+CONF_CREDIT_BUDGET: Final = "credit_budget"
+CONF_UPDATE_INTERVAL: Final = "update_interval"
+CONF_ADVANCED_POWER_FLOW: Final = "advanced_power_flow"
 
-SCAN_INTERVAL = timedelta(minutes=15)
+# SolarEdge Monitoring API v2 / SolarEdge Connect (OAuth 2.0)
+API_BASE_URL: Final = "https://monitoringapi.solaredge.com/v2"
+OAUTH2_AUTHORIZE_URL: Final = "https://connect.solaredge.com/authorize"
+OAUTH2_TOKEN_URL: Final = f"{API_BASE_URL}/oauth2/token"
+OAUTH2_SCOPES: Final = ("SITE_DATA", "DEVICE_DATA")
+# Maximum grant duration in months
+OAUTH2_ACCESS_DURATION: Final = 24
+DEVELOPER_CONSOLE_URL: Final = "https://developer.solaredge.com"
+
+# Credits (1 credit per successful API call)
+DEFAULT_CREDIT_BUDGET: Final = 2000  # Free tier
+MIN_CREDIT_BUDGET: Final = 100
+# Keep a safety margin so the monthly budget is never fully used
+CREDIT_BUDGET_USAGE: Final = 0.9
+MINUTES_PER_MONTH: Final = 30 * 24 * 60
+
+# Update intervals
+MIN_UPDATE_INTERVAL: Final = timedelta(minutes=15)  # API minimum resolution
+MAX_UPDATE_INTERVAL: Final = timedelta(hours=24)
+SITE_INFO_UPDATE_INTERVAL: Final = timedelta(hours=24)
+LIFETIME_ENERGY_UPDATE_INTERVAL: Final = timedelta(hours=6)
+POWER_FLOW_UPDATE_INTERVAL: Final = timedelta(minutes=5)
+
+# Credits per day used by calls that are not part of the measurement cycle
+SITE_INFO_CALLS_PER_DAY: Final = 2  # site details + device list
+LIFETIME_CALLS_PER_DAY: Final = 4
+POWER_FLOW_CALLS_PER_DAY: Final = 24 * 60 // 5
+
+# Repair issues
+ISSUE_CREDIT_LIMIT: Final = "credit_limit_reached"
+ISSUE_POWER_FLOW_TIER: Final = "power_flow_tier"

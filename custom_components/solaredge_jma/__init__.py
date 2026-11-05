@@ -1,17 +1,20 @@
-"""The SolarEdge integration."""
+"""The SolarEdge (JMA) integration (SolarEdge Monitoring API v2)."""
 
-import socket
-
-from aiohttp import ClientError
-
-from homeassistant.const import CONF_API_KEY, Platform
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryError, ConfigEntryNotReady
-from homeassistant.helpers import device_registry as dr
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryError
+from homeassistant.helpers import config_entry_oauth2_flow, device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .api import SolarEdge
-from .const import CONF_SITE_ID, DATA_API_CLIENT, DOMAIN
+from .api import SolarEdgeClient
+from .const import CONF_ADVANCED_POWER_FLOW, CONF_SITE_ID, DOMAIN, LOGGER
+from .coordinator import (
+    SolarEdgeMeasurementsCoordinator,
+    SolarEdgePowerFlowCoordinator,
+    SolarEdgeSiteInfoCoordinator,
+    calculate_update_interval,
+    estimate_credits_per_month,
+)
 from .types import SolarEdgeConfigEntry, SolarEdgeData
 
 PLATFORMS = [Platform.SENSOR]
@@ -19,46 +22,77 @@ PLATFORMS = [Platform.SENSOR]
 
 async def async_setup_entry(hass: HomeAssistant, entry: SolarEdgeConfigEntry) -> None:
     """Set up SolarEdge from a config entry."""
-    entry.runtime_data = SolarEdgeData()
-    site_id = entry.data[CONF_SITE_ID]
-
-    session = async_get_clientsession(hass)
-    api = SolarEdge(entry.data[CONF_API_KEY], session)
-
-    try:
-        response = await api.get_details(site_id)
-    except (TimeoutError, ClientError, socket.gaierror) as ex:
-        raise ConfigEntryNotReady(
-            translation_domain=DOMAIN,
-            translation_key="cannot_retrieve_details",
-        ) from ex
-
-    if "details" not in response:
-        raise ConfigEntryNotReady(
-            translation_domain=DOMAIN,
-            translation_key="missing_details",
+    if "token" not in entry.data:
+        # Entry created for the shut down API v1 (API key): authorize with OAuth
+        raise ConfigEntryAuthFailed(
+            translation_domain=DOMAIN, translation_key="oauth_required"
         )
 
-    if response["details"].get("status", "").lower() != "active":
+    site_id = str(entry.data[CONF_SITE_ID])
+    implementation = (
+        await config_entry_oauth2_flow.async_get_config_entry_implementation(
+            hass, entry
+        )
+    )
+    oauth_session = config_entry_oauth2_flow.OAuth2Session(hass, entry, implementation)
+
+    async def access_token() -> str:
+        await oauth_session.async_ensure_token_valid()
+        return str(oauth_session.token["access_token"])
+
+    client = SolarEdgeClient(async_get_clientsession(hass), access_token)
+
+    site_info = SolarEdgeSiteInfoCoordinator(hass, entry, client, site_id)
+    await site_info.async_config_entry_first_refresh()
+
+    status = site_info.data.status
+    if status is not None and status.lower() != "active":
         raise ConfigEntryError(
-            translation_domain=DOMAIN,
-            translation_key="site_not_active",
+            translation_domain=DOMAIN, translation_key="site_not_active"
         )
 
-    entry.runtime_data[DATA_API_CLIENT] = api
+    options = dict(entry.options)
+    update_interval = calculate_update_interval(options, site_info.data)
+    credits = estimate_credits_per_month(options, site_info.data, update_interval)
+    LOGGER.debug(
+        "Site %s: measurements every %s, estimated %s credits per month",
+        site_id,
+        update_interval,
+        credits,
+    )
+
+    measurements = SolarEdgeMeasurementsCoordinator(
+        hass, entry, client, site_id, site_info, update_interval
+    )
+    await measurements.async_config_entry_first_refresh()
+
+    power_flow = None
+    if options.get(CONF_ADVANCED_POWER_FLOW):
+        power_flow = SolarEdgePowerFlowCoordinator(hass, entry, client, site_id)
+        # Not fatal: the endpoint needs a Business Pro or Enterprise tier
+        await power_flow.async_refresh()
+
+    entry.runtime_data = SolarEdgeData(
+        client=client,
+        site_info=site_info,
+        measurements=measurements,
+        power_flow=power_flow,
+        update_interval=update_interval,
+        estimated_credits_per_month=credits,
+    )
 
     # Register the site device up front so per-battery devices can resolve it
     # as their via_device when their entities are created.
-    device_registry = dr.async_get(hass)
-    device_registry.async_get_or_create(
+    dr.async_get(hass).async_get_or_create(
         config_entry_id=entry.entry_id,
         identifiers={(DOMAIN, site_id)},
         manufacturer="SolarEdge",
+        name=site_info.data.name,
     )
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: SolarEdgeConfigEntry) -> None:
-    """Unload SolarEdge config entry."""
+    """Unload a config entry."""
     await hass.config_entries.async_unload_platforms_or_raise(entry, PLATFORMS)

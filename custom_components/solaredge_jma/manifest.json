@@ -1,14 +1,12 @@
 {
   "domain": "solaredge_jma",
   "name": "SolarEdge (JMA)",
-  "codeowners": [
-    "@bdraco",
-    "@tronikos"
-  ],
+  "codeowners": [],
   "config_flow": true,
-  "documentation": "https://www.home-assistant.io/integrations/solaredge",
+  "dependencies": ["application_credentials"],
+  "documentation": "https://api-docs.solaredge.com/docs/developer-platform/df8kx5j4z9vi0-homeowner-and-self-access-guide",
   "integration_type": "device",
   "iot_class": "cloud_polling",
   "requirements": [],
-  "version": "2026.11.0"
+  "version": "2.0.0"
 }
