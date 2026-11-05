@@ -2,10 +2,10 @@
 
 from typing import Any
 
-from homeassistant.const import CONF_API_KEY, CONF_USERNAME
+from homeassistant.const import CONF_API_KEY
 from homeassistant.core import HomeAssistant
 
-from .const import DATA_MODULES_COORDINATOR, DATA_SERVICES
+from .const import DATA_SERVICES
 from .coordinator import (
     SolarEdgeDataService,
     SolarEdgeDetailsDataService,
@@ -83,17 +83,10 @@ async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: SolarEdgeConfigEntry
 ) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
-    runtime_data = entry.runtime_data
-    diagnostics: dict[str, Any] = {
+    return {
         "api_key_configured": CONF_API_KEY in entry.data,
-        "web_login_configured": CONF_USERNAME in entry.data,
         "services": {
             SERVICE_NAMES[type(service)]: _service_diagnostics(service)
-            for service in runtime_data.get(DATA_SERVICES, [])
+            for service in entry.runtime_data.get(DATA_SERVICES, [])
         },
     }
-    if modules_coordinator := runtime_data.get(DATA_MODULES_COORDINATOR):
-        diagnostics["modules_last_update_success"] = (
-            modules_coordinator.last_update_success
-        )
-    return diagnostics

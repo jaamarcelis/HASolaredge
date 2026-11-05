@@ -3,35 +3,29 @@
 import socket
 from typing import TYPE_CHECKING, Any, override
 
-from aiohttp import ClientError, ClientResponseError
+from aiohttp import ClientError
 import probatio
-from solaredge_web import SolarEdgeWeb
 
 from homeassistant.config_entries import (
     SOURCE_RECONFIGURE,
     ConfigFlow,
     ConfigFlowResult,
 )
-from homeassistant.const import CONF_API_KEY, CONF_NAME, CONF_PASSWORD, CONF_USERNAME
+from homeassistant.const import CONF_API_KEY, CONF_NAME
 from homeassistant.core import callback
-from homeassistant.data_entry_flow import section
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.util import slugify
 
 from .api import SolarEdge
-from .const import (
-    CONF_SECTION_API_AUTH,
-    CONF_SECTION_WEB_AUTH,
-    CONF_SITE_ID,
-    DEFAULT_NAME,
-    DOMAIN,
-)
+from .const import CONF_SITE_ID, DEFAULT_NAME, DOMAIN
 
 
 class SolarEdgeConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow."""
 
     VERSION = 1
+    # 1.2: web account login (module statistics) removed
+    MINOR_VERSION = 2
 
     def __init__(self) -> None:
         """Initialize the config flow."""
@@ -67,29 +61,6 @@ class SolarEdgeConfigFlow(ConfigFlow, domain=DOMAIN):
             return False
         return True
 
-    async def _async_check_web_login(
-        self, site_id: str, username: str, password: str
-    ) -> bool:
-        """Validate the user input allows us to connect to the web service."""
-        api = SolarEdgeWeb(
-            username=username,
-            password=password,
-            site_id=site_id,
-            session=async_get_clientsession(self.hass),
-        )
-        try:
-            await api.async_get_equipment()
-        except ClientResponseError as err:
-            if err.status in (401, 403):
-                self._errors["base"] = "invalid_auth"
-            else:
-                self._errors["base"] = "cannot_connect"
-            return False
-        except TimeoutError, ClientError:
-            self._errors["base"] = "cannot_connect"
-            return False
-        return True
-
     @override
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -108,52 +79,25 @@ class SolarEdgeConfigFlow(ConfigFlow, domain=DOMAIN):
                 site_id = entry.data[CONF_SITE_ID]
             else:
                 site_id = user_input[CONF_SITE_ID]
-            api_auth = user_input.get(CONF_SECTION_API_AUTH, {})
-            web_auth = user_input.get(CONF_SECTION_WEB_AUTH, {})
-            api_key = api_auth.get(CONF_API_KEY)
-            username = web_auth.get(CONF_USERNAME)
+            api_key = user_input[CONF_API_KEY]
 
             if self.source != SOURCE_RECONFIGURE and self._site_in_configuration_exists(
                 site_id
             ):
                 self._errors[CONF_SITE_ID] = "already_configured"
-            elif not api_key and not username:
-                self._errors["base"] = "auth_missing"
-            else:
-                api_key_ok = True
-                if api_key:
-                    api_key_ok = await self._async_check_site(site_id, api_key)
+            elif await self._async_check_site(site_id, api_key):
+                data = {CONF_SITE_ID: site_id, CONF_API_KEY: api_key}
 
-                web_login_ok = True
-                if api_key_ok and username:
-                    web_login_ok = await self._async_check_web_login(
-                        site_id, username, web_auth[CONF_PASSWORD]
-                    )
+                if self.source == SOURCE_RECONFIGURE:
+                    if TYPE_CHECKING:
+                        assert entry
+                    return self.async_update_reload_and_abort(entry, data=data)
 
-                if api_key_ok and web_login_ok:
-                    data = {CONF_SITE_ID: site_id}
-                    if api_key:
-                        data[CONF_API_KEY] = api_key
-                    if username:
-                        data[CONF_USERNAME] = username
-                        data[CONF_PASSWORD] = web_auth[CONF_PASSWORD]
-
-                    if self.source == SOURCE_RECONFIGURE:
-                        if TYPE_CHECKING:
-                            assert entry
-                        return self.async_update_reload_and_abort(entry, data=data)
-
-                    return self.async_create_entry(title=name, data=data)
+                return self.async_create_entry(title=name, data=data)
         elif self.source == SOURCE_RECONFIGURE:
             if TYPE_CHECKING:
                 assert entry
-            user_input = {
-                CONF_SECTION_API_AUTH: {CONF_API_KEY: entry.data.get(CONF_API_KEY, "")},
-                CONF_SECTION_WEB_AUTH: {
-                    CONF_USERNAME: entry.data.get(CONF_USERNAME, ""),
-                    CONF_PASSWORD: entry.data.get(CONF_PASSWORD, ""),
-                },
-            }
+            user_input = {CONF_API_KEY: entry.data.get(CONF_API_KEY, "")}
         else:
             user_input = {}
 
@@ -171,36 +115,7 @@ class SolarEdgeConfigFlow(ConfigFlow, domain=DOMAIN):
                     CONF_SITE_ID, default=user_input.get(CONF_SITE_ID, "")
                 )
             ] = str
-
-        data_schema_dict.update(
-            {
-                probatio.Optional(CONF_SECTION_API_AUTH): section(
-                    probatio.Schema(
-                        {
-                            probatio.Optional(
-                                probatio.Secret(CONF_API_KEY), default=""
-                            ): str,
-                        }
-                    ),
-                    options={"collapsed": False},
-                ),
-                probatio.Optional(CONF_SECTION_WEB_AUTH): section(
-                    probatio.Schema(
-                        {
-                            probatio.Inclusive(
-                                CONF_USERNAME, "web_account", default=""
-                            ): str,
-                            probatio.Inclusive(
-                                probatio.Secret(CONF_PASSWORD),
-                                "web_account",
-                                default="",
-                            ): str,
-                        }
-                    ),
-                    options={"collapsed": False},
-                ),
-            }
-        )
+        data_schema_dict[probatio.Required(probatio.Secret(CONF_API_KEY))] = str
         data_schema = probatio.Schema(data_schema_dict)
 
         step_id = "user"

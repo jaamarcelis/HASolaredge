@@ -5,76 +5,32 @@
     },
     "error": {
       "already_configured": "Device is already configured",
-      "auth_missing": "You must provide either an API key or a username and password.",
       "cannot_connect": "Failed to connect",
       "invalid_api_key": "Invalid API key",
-      "invalid_auth": "Invalid authentication",
       "site_not_active": "The site is not active for the provided API key",
       "unknown": "Unexpected error"
     },
     "step": {
       "reconfigure": {
         "data": {
-          "api_key": "API key",
-          "password": "Password",
-          "username": "Username"
+          "api_key": "API key"
         },
         "data_description": {
-          "api_key": "Optional, used for general site sensors",
-          "password": "Required if username is provided",
-          "username": "Optional, used for detailed module-level production statistics"
+          "api_key": "Your SolarEdge Monitoring API key, created in the SolarEdge monitoring portal"
         },
-        "description": "Update your API key or web account credentials for site {site_id}.",
-        "sections": {
-          "api_auth": {
-            "data": {
-              "api_key": "API key"
-            },
-            "description": "Optionally provide your SolarEdge API key. Used for real-time detailed site sensors",
-            "name": "API key authentication"
-          },
-          "web_auth": {
-            "data": {
-              "password": "Password",
-              "username": "Username"
-            },
-            "description": "Optionally provide your SolarEdge web portal credentials. Used for non real-time module-level production statistics",
-            "name": "Web account authentication"
-          }
-        },
+        "description": "Update your API key for site {site_id}.",
         "title": "Reconfigure SolarEdge"
       },
       "user": {
         "data": {
           "api_key": "API key",
           "name": "The name of this installation",
-          "password": "Password",
-          "site_id": "The SolarEdge site ID",
-          "username": "Username"
+          "site_id": "The SolarEdge site ID"
         },
         "data_description": {
-          "api_key": "Optional, used for general site sensors",
-          "password": "Required if username is provided",
-          "username": "Optional, used for detailed module-level production statistics"
+          "api_key": "Your SolarEdge Monitoring API key, created in the SolarEdge monitoring portal"
         },
-        "description": "Provide your site ID and at least one method of authentication",
-        "sections": {
-          "api_auth": {
-            "data": {
-              "api_key": "API key"
-            },
-            "description": "Optionally provide your SolarEdge API key. Used for real-time detailed site sensors",
-            "name": "API key authentication"
-          },
-          "web_auth": {
-            "data": {
-              "password": "Password",
-              "username": "Username"
-            },
-            "description": "Optionally provide your SolarEdge web portal credentials. Used for non real-time module-level production statistics",
-            "name": "Web account authentication"
-          }
-        },
+        "description": "Provide your site ID and API key",
         "title": "Set up your SolarEdge integration"
       }
     }
@@ -176,6 +132,9 @@
     }
   },
   "exceptions": {
+    "api_key_missing": {
+      "message": "No API key configured. Reconfigure the integration and enter your SolarEdge API key."
+    },
     "api_request_failed": {
       "message": "Error requesting {service} data: {status}"
     },

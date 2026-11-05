@@ -18,8 +18,15 @@ integratie de ingebouwde versie vervangt.
   ([`api.py`](custom_components/solaredge/api.py)), gebaseerd op
   [aiosolaredge](https://github.com/bdraco/aiosolaredge) 1.0.2 (MIT-licentie).
   Het pip-pakket `aiosolaredge` is daardoor niet meer nodig.
-- Het pakket `solaredge-web` (statistieken per paneel) is nog wel nodig.
-  Home Assistant installeert het automatisch.
+- Inloggen met gebruikersnaam en wachtwoord van het webportaal (pakket
+  `solaredge-web`, productiestatistieken per paneel) is verwijderd. De
+  integratie werkt alleen nog met een API-sleutel en heeft geen externe
+  Python-pakketten nodig.
+- Bestaande configuraties worden automatisch gemigreerd (config entry-versie
+  1.2): een opgeslagen gebruikersnaam en wachtwoord worden verwijderd.
+  Een configuratie die alleen een web-login had, start niet meer. Configureer
+  die opnieuw met een API-sleutel. Eerder geïmporteerde statistieken per paneel
+  blijven in de database staan.
 
 ## Vereisten
 
@@ -44,13 +51,9 @@ Daarna: *Instellingen → Apparaten & diensten → Integratie toevoegen → Sola
 
 ## Configuratie
 
-Geef het site-ID op en minstens één van de twee manieren van inloggen:
-
-- **API-sleutel**: voor de sensoren van de site (vermogen, energie, opslag,
-  power flow, enz.).
-- **Gebruikersnaam en wachtwoord van het webportaal**: voor productiestatistieken
-  per paneel (module). Die worden als externe statistieken in de recorder
-  geïmporteerd.
+Geef het site-ID en de API-sleutel op. De API-sleutel maak je aan in het
+SolarEdge-monitoringportaal. Daarmee krijg je de sensoren van de site
+(vermogen, energie, opslag, power flow, enz.).
 
 ## Bijwerken vanuit Home Assistant core
 
@@ -58,7 +61,10 @@ Geef het site-ID op en minstens één van de twee manieren van inloggen:
    release-tag naar `custom_components/solaredge`, behalve `strings.json`.
    Vervang daarna `from aiosolaredge import SolarEdge` door
    `from .api import SolarEdge` en haal `aiosolaredge` weg uit `requirements` en
-   `loggers` in `manifest.json`.
+   `loggers` in `manifest.json`. Haal ook de web-login weer weg:
+   `SolarEdgeModulesCoordinator`, de `web_auth`-sectie in de config flow,
+   `solaredge-web` en de `recorder`-afhankelijkheid. Behoud de migratie naar
+   versie 1.2 in `__init__.py`.
 2. Zet `strings.json` om naar `translations/en.json`. Vervang daarbij elke
    `[%key:...%]`-verwijzing door de tekst zelf (zie `homeassistant/strings.json`
    in core), want custom integraties lossen die verwijzingen niet op.
