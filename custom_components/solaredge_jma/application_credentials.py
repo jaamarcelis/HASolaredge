@@ -94,6 +94,6 @@ async def async_get_description_placeholders(hass: HomeAssistant) -> dict[str, s
     """Return description placeholders for the credentials dialog."""
     return {
         "developer_url": DEVELOPER_CONSOLE_URL,
-        "redirect_url": config_entry_oauth2_flow.MY_AUTH_CALLBACK_PATH,
+        "redirect_url": config_entry_oauth2_flow.AUTH_CALLBACK_PATH,
         "scopes": ", ".join(OAUTH2_SCOPES),
     }
