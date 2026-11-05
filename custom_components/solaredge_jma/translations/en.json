@@ -132,9 +132,6 @@
     }
   },
   "exceptions": {
-    "api_key_missing": {
-      "message": "No API key configured. Reconfigure the integration and enter your SolarEdge API key."
-    },
     "api_request_failed": {
       "message": "Error requesting {service} data: {status}"
     },

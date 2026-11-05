@@ -24,8 +24,6 @@ class SolarEdgeConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow."""
 
     VERSION = 1
-    # 1.2: web account login (module statistics) removed
-    MINOR_VERSION = 2
 
     def __init__(self) -> None:
         """Initialize the config flow."""

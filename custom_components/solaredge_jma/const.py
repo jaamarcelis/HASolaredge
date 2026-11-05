@@ -4,7 +4,7 @@ from datetime import timedelta
 import logging
 from typing import Final
 
-DOMAIN = "solaredge"
+DOMAIN = "solaredge_jma"
 
 LOGGER = logging.getLogger(__package__)
 

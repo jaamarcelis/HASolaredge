@@ -4,46 +4,23 @@ import socket
 
 from aiohttp import ClientError
 
-from homeassistant.const import CONF_API_KEY, CONF_PASSWORD, CONF_USERNAME, Platform
+from homeassistant.const import CONF_API_KEY, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryError, ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import SolarEdge
-from .const import CONF_SITE_ID, DATA_API_CLIENT, DOMAIN, LOGGER
+from .const import CONF_SITE_ID, DATA_API_CLIENT, DOMAIN
 from .types import SolarEdgeConfigEntry, SolarEdgeData
 
 PLATFORMS = [Platform.SENSOR]
-
-
-async def async_migrate_entry(
-    hass: HomeAssistant, entry: SolarEdgeConfigEntry
-) -> None:
-    """Migrate an old config entry."""
-    if entry.version == 1 and entry.minor_version < 2:
-        # 1.2: web account login (module statistics) is no longer supported,
-        # remove the stored credentials.
-        data = {
-            key: value
-            for key, value in entry.data.items()
-            if key not in (CONF_USERNAME, CONF_PASSWORD)
-        }
-        hass.config_entries.async_update_entry(entry, data=data, minor_version=2)
-        LOGGER.debug("Migrated config entry %s to version 1.2", entry.entry_id)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: SolarEdgeConfigEntry) -> None:
     """Set up SolarEdge from a config entry."""
     entry.runtime_data = SolarEdgeData()
     site_id = entry.data[CONF_SITE_ID]
-
-    if CONF_API_KEY not in entry.data:
-        # Entries that were created with only a web account login
-        raise ConfigEntryError(
-            translation_domain=DOMAIN,
-            translation_key="api_key_missing",
-        )
 
     session = async_get_clientsession(hass)
     api = SolarEdge(entry.data[CONF_API_KEY], session)
