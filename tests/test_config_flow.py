@@ -1,6 +1,7 @@
 """Tests for the SolarEdge (JMA) config flow and OAuth implementation."""
 
 from http import HTTPStatus
+from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
 
 import pytest
@@ -10,6 +11,9 @@ from pytest_homeassistant.test_util.aiohttp import (
 )
 from pytest_homeassistant.typing import ClientSessionGenerator
 
+from custom_components.solaredge_jma.application_credentials import (
+    async_get_description_placeholders,
+)
 from custom_components.solaredge_jma.const import (
     CONF_ADVANCED_POWER_FLOW,
     CONF_CREDIT_BUDGET,
@@ -23,10 +27,12 @@ from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import config_entry_oauth2_flow
+from homeassistant.helpers.network import NoURLAvailableError
 
 from .conftest import (
     CLIENT_ID,
     CLIENT_SECRET,
+    REDIRECT_URI,
     SITE_ID,
     SITE_RESPONSE,
     SITE_URL,
@@ -52,6 +58,7 @@ async def _authorize(
     assert f"{url.scheme}://{url.netloc}{url.path}" == OAUTH2_AUTHORIZE_URL
     query = parse_qs(url.query)
     assert query["client_id"] == [CLIENT_ID]
+    assert query["redirect_uri"] == [REDIRECT_URI]
     assert query["scope"] == ["SITE_DATA DEVICE_DATA"]
     assert query["access_duration"] == ["24"]
     state = query["state"][0]
@@ -110,6 +117,7 @@ async def test_full_flow(
     assert body["code"] == "abcd"
     assert body["client_id"] == CLIENT_ID
     assert body["client_secret"] == CLIENT_SECRET
+    assert body["redirect_uri"] == REDIRECT_URI
 
     # API calls use the bearer token
     site_calls = [
@@ -258,3 +266,21 @@ async def test_options_flow(
     assert config_entry.options[CONF_CREDIT_BUDGET] == 20000
     assert config_entry.runtime_data.update_interval.total_seconds() == 15 * 60
     assert SITE_RESPONSE["name"] == config_entry.title
+
+
+@pytest.mark.usefixtures("setup_credentials")
+async def test_credentials_dialog_shows_local_callback(hass: HomeAssistant) -> None:
+    """Test the credentials dialog shows the redirect URI that is used."""
+    placeholders = await async_get_description_placeholders(hass)
+    assert placeholders["redirect_url"] == REDIRECT_URI
+
+    hass.config.external_url = None
+    hass.config.internal_url = None
+    with patch(
+        "custom_components.solaredge_jma.application_credentials.get_url",
+        side_effect=NoURLAvailableError,
+    ):
+        placeholders = await async_get_description_placeholders(hass)
+    assert placeholders["redirect_url"] == (
+        "<your Home Assistant URL>/auth/external/callback"
+    )

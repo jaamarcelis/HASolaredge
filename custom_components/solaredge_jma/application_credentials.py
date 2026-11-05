@@ -4,6 +4,9 @@ SolarEdge Connect uses the OAuth 2.0 authorization code flow, but its token
 endpoint expects a JSON body that always contains the client id and secret
 (also when refreshing). Home Assistant's default implementation sends form
 data, so the token request is overridden here.
+
+The redirect URI is always the local OAuth callback of this Home Assistant
+instance (<url>/auth/external/callback), also when My Home Assistant is enabled.
 """
 
 from typing import Any, override
@@ -15,9 +18,10 @@ from homeassistant.components.application_credentials import (
     AuthorizationServer,
     ClientCredential,
 )
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import config_entry_oauth2_flow, oauth2
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.network import NoURLAvailableError, get_url
 
 from .const import (
     DEVELOPER_CONSOLE_URL,
@@ -29,8 +33,26 @@ from .const import (
 )
 
 
+@callback
+def async_get_local_redirect_uri(hass: HomeAssistant) -> str:
+    """Return the local OAuth callback URL of this instance.
+
+    Uses the configured external URL, or the internal URL when there is none, so
+    the URI is always the same and can be registered at SolarEdge.
+    Raises NoURLAvailableError when no URL is configured.
+    """
+    base_url = get_url(hass, prefer_external=True)
+    return f"{base_url}{config_entry_oauth2_flow.AUTH_CALLBACK_PATH}"
+
+
 class SolarEdgeOAuth2Implementation(AuthImplementation):
     """SolarEdge Connect OAuth 2.0 implementation."""
+
+    @property
+    @override
+    def redirect_uri(self) -> str:
+        """Return the local callback instead of the My Home Assistant redirect."""
+        return async_get_local_redirect_uri(self.hass)
 
     @property
     @override
@@ -92,8 +114,14 @@ async def async_get_auth_implementation(
 
 async def async_get_description_placeholders(hass: HomeAssistant) -> dict[str, str]:
     """Return description placeholders for the credentials dialog."""
+    try:
+        redirect_url = async_get_local_redirect_uri(hass)
+    except NoURLAvailableError:
+        redirect_url = (
+            "<your Home Assistant URL>" + config_entry_oauth2_flow.AUTH_CALLBACK_PATH
+        )
     return {
         "developer_url": DEVELOPER_CONSOLE_URL,
-        "redirect_url": config_entry_oauth2_flow.AUTH_CALLBACK_PATH,
+        "redirect_url": redirect_url,
         "scopes": ", ".join(OAUTH2_SCOPES),
     }

@@ -1,6 +1,6 @@
 {
   "application_credentials": {
-    "description": "SolarEdge uses OAuth 2.0 (Site Access). Sign in to the [SolarEdge developer console]({developer_url}) with your SolarEdge account, create a **Site Access** application for the Monitoring API with the scopes {scopes}, and register `{redirect_url}` as redirect URI. Then enter the client ID and client secret of that application here."
+    "description": "SolarEdge uses OAuth 2.0 (Site Access). Sign in to the [SolarEdge developer console]({developer_url}) with your SolarEdge account, create a **Site Access** application for the Monitoring API with the scopes {scopes}, and register `{redirect_url}` as redirect URI. This URL is based on the Home Assistant URL configured under Settings > System > Network (external URL, or the internal URL when there is none), and your browser must be able to reach it. Then enter the client ID and client secret of that application here."
   },
   "config": {
     "abort": {

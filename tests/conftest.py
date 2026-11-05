@@ -21,6 +21,8 @@ CLIENT_ID = "client-id"
 CLIENT_SECRET = "client-secret"
 SITE_ID = "1234567"
 SITE_URL = f"{API_BASE_URL}/sites/{SITE_ID}"
+HA_URL = "https://ha.example.com"
+REDIRECT_URI = f"{HA_URL}/auth/external/callback"
 
 SITE_RESPONSE = {
     "siteId": int(SITE_ID),
@@ -114,6 +116,9 @@ STORAGE_RESPONSE = {
 @pytest.fixture
 async def setup_credentials(hass: HomeAssistant) -> None:
     """Set up the application credentials."""
+    hass.config.external_url = HA_URL
+    # Simulate My Home Assistant: the local callback must still be used
+    hass.config.components.add("my")
     assert await async_setup_component(hass, "application_credentials", {})
     await async_import_client_credential(
         hass, DOMAIN, ClientCredential(CLIENT_ID, CLIENT_SECRET), DOMAIN

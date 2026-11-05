@@ -14,8 +14,10 @@ De integratie heeft een eigen domein, `solaredge_jma`, en heet in Home Assistant
 - Home Assistant **2026.11.0** of nieuwer.
 - Een (gratis) account op het
   [SolarEdge developer platform](https://developer.solaredge.com).
-- [My Home Assistant](https://my.home-assistant.io) ingeschakeld (standaard aan),
-  voor de OAuth-redirect.
+- Een ingestelde URL van Home Assistant (*Instellingen → Systeem → Netwerk*):
+  de externe URL, of de interne als er geen externe is. De OAuth-redirect gaat
+  naar de lokale callback op dat adres, dus je browser moet het kunnen bereiken.
+  My Home Assistant wordt niet gebruikt.
 
 ## Installatie
 
@@ -40,7 +42,11 @@ Kopieer `custom_components/solaredge_jma` naar
    **Free**-tier volstaat.
 2. Kies **Create Application** → service *Monitoring API* → **Site Access**.
 3. Vul in:
-   - **Redirect URI:** `https://my.home-assistant.io/redirect/oauth`
+   - **Redirect URI:** `<HA-URL>/auth/external/callback`, bijvoorbeeld
+     `https://ha.example.com/auth/external/callback`. Hier hoort de URL uit de
+     vereisten hierboven; het dialoog *Application credentials* in Home Assistant
+     toont de exacte waarde. Wijzig je later de URL van Home Assistant, pas dan
+     ook de redirect-URI bij SolarEdge aan.
    - **Origin URL:** de externe URL van je Home Assistant (of laat leeg als dat
      mag).
    - **Scopes:** `SITE_DATA` en `DEVICE_DATA`.
