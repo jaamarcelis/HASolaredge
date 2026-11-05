@@ -42,8 +42,8 @@ Kopieer `custom_components/solaredge_jma` naar
    **Free**-tier volstaat.
 2. Kies **Create Application** → service *Monitoring API* → **Site Access**.
 3. Vul in:
-   - **Redirect URI:** `<HA-URL>/auth/external/callback`, bijvoorbeeld
-     `https://ha.example.com/auth/external/callback`. Hier hoort de URL uit de
+   - **Redirect URI:** `<HA-URL>/api/solaredge_jma/oauth/callback`, bijvoorbeeld
+     `https://ha.example.com/api/solaredge_jma/oauth/callback`. Hier hoort de URL uit de
      vereisten hierboven; het dialoog *Application credentials* in Home Assistant
      toont de exacte waarde. Wijzig je later de URL van Home Assistant, pas dan
      ook de redirect-URI bij SolarEdge aan.

@@ -51,8 +51,9 @@ async def _authorize(
     hass: HomeAssistant,
     hass_client_no_auth: ClientSessionGenerator,
     result: dict,
+    approved_site_id: str = SITE_ID,
 ) -> str:
-    """Follow the external step and return the state."""
+    """Follow the external step; SolarEdge redirects without "state"."""
     assert result["type"] is FlowResultType.EXTERNAL_STEP
     url = urlparse(result["url"])
     assert f"{url.scheme}://{url.netloc}{url.path}" == OAUTH2_AUTHORIZE_URL
@@ -65,7 +66,7 @@ async def _authorize(
 
     client = await hass_client_no_auth()
     response = await client.get(
-        f"/auth/external/callback?code=abcd&state={state}&site_id={SITE_ID}"
+        f"/api/solaredge_jma/oauth/callback?code=abcd&site_id={approved_site_id}"
     )
     assert response.status == HTTPStatus.OK
     return state
@@ -282,5 +283,51 @@ async def test_credentials_dialog_shows_local_callback(hass: HomeAssistant) -> N
     ):
         placeholders = await async_get_description_placeholders(hass)
     assert placeholders["redirect_url"] == (
-        "<your Home Assistant URL>/auth/external/callback"
+        "<your Home Assistant URL>/api/solaredge_jma/oauth/callback"
     )
+
+
+@pytest.mark.usefixtures("current_request_with_host", "setup_credentials")
+async def test_site_mismatch(
+    hass: HomeAssistant,
+    hass_client_no_auth: ClientSessionGenerator,
+    aioclient_mock: AiohttpClientMocker,
+) -> None:
+    """Test the user approved another site than the one entered."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"site_id": SITE_ID}
+    )
+    await _authorize(hass, hass_client_no_auth, result, approved_site_id="999")
+    aioclient_mock.post(OAUTH2_TOKEN_URL, json=TOKEN_RESPONSE)
+
+    result = await hass.config_entries.flow.async_configure(result["flow_id"])
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "site_mismatch"
+    assert result["description_placeholders"] == {
+        "site_id": SITE_ID,
+        "approved_site_id": "999",
+    }
+
+
+@pytest.mark.usefixtures("current_request_with_host", "setup_credentials")
+async def test_callback_without_waiting_flow(
+    hass: HomeAssistant, hass_client_no_auth: ClientSessionGenerator
+) -> None:
+    """Test the callback is rejected when no flow waits for authorization."""
+    # Starting a flow up to the external step registers the view
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"site_id": SITE_ID}
+    )
+    hass.config_entries.flow.async_abort(result["flow_id"])
+
+    client = await hass_client_no_auth()
+    response = await client.get("/api/solaredge_jma/oauth/callback?code=abcd")
+    assert response.status == HTTPStatus.BAD_REQUEST
+    response = await client.get("/api/solaredge_jma/oauth/callback")
+    assert response.status == HTTPStatus.BAD_REQUEST

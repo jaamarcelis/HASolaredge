@@ -24,6 +24,9 @@ OAUTH2_SCOPES: Final = ("SITE_DATA", "DEVICE_DATA")
 # Maximum grant duration in months
 OAUTH2_ACCESS_DURATION: Final = 24
 DEVELOPER_CONSOLE_URL: Final = "https://developer.solaredge.com"
+# Own OAuth callback: SolarEdge Connect does not return the "state" parameter,
+# which Home Assistant's /auth/external/callback requires.
+OAUTH2_CALLBACK_PATH: Final = f"/api/{DOMAIN}/oauth/callback"
 
 # Credits (1 credit per successful API call)
 DEFAULT_CREDIT_BUDGET: Final = 2000  # Free tier

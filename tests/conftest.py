@@ -22,7 +22,7 @@ CLIENT_SECRET = "client-secret"
 SITE_ID = "1234567"
 SITE_URL = f"{API_BASE_URL}/sites/{SITE_ID}"
 HA_URL = "https://ha.example.com"
-REDIRECT_URI = f"{HA_URL}/auth/external/callback"
+REDIRECT_URI = f"{HA_URL}/api/solaredge_jma/oauth/callback"
 
 SITE_RESPONSE = {
     "siteId": int(SITE_ID),

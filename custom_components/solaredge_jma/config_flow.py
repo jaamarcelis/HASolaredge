@@ -128,6 +128,18 @@ class SolarEdgeOAuth2FlowHandler(
         """Verify the authorized site and create or update the entry."""
         site_id = self._site_id
         assert site_id is not None
+
+        # The SolarEdge redirect tells which site the user approved
+        approved_site_id = (self.external_data or {}).get("site_id")
+        if approved_site_id is not None and str(approved_site_id) != site_id:
+            return self.async_abort(
+                reason="site_mismatch",
+                description_placeholders={
+                    CONF_SITE_ID: site_id,
+                    "approved_site_id": str(approved_site_id),
+                },
+            )
+
         access_token: str = data["token"]["access_token"]
 
         async def token_provider() -> str:

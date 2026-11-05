@@ -8,6 +8,7 @@
       "cannot_connect": "Failed to connect to the SolarEdge Monitoring API",
       "missing_configuration": "The integration is not configured. Add application credentials first.",
       "reauth_successful": "Re-authentication was successful",
+      "site_mismatch": "On the SolarEdge consent screen you approved site {approved_site_id}, but you entered site {site_id}. Start again and choose site {site_id} on the consent screen.",
       "site_not_active": "The SolarEdge site is not active",
       "site_not_authorized": "The authorization does not give access to site {site_id}. Choose this site on the SolarEdge consent screen and try again.",
       "wrong_site": "The authorization is for a different site than the one of this entry"
