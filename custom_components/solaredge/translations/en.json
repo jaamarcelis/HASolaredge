@@ -1,0 +1,198 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "Device is already configured"
+    },
+    "error": {
+      "already_configured": "Device is already configured",
+      "auth_missing": "You must provide either an API key or a username and password.",
+      "cannot_connect": "Failed to connect",
+      "invalid_api_key": "Invalid API key",
+      "invalid_auth": "Invalid authentication",
+      "site_not_active": "The site is not active for the provided API key",
+      "unknown": "Unexpected error"
+    },
+    "step": {
+      "reconfigure": {
+        "data": {
+          "api_key": "API key",
+          "password": "Password",
+          "username": "Username"
+        },
+        "data_description": {
+          "api_key": "Optional, used for general site sensors",
+          "password": "Required if username is provided",
+          "username": "Optional, used for detailed module-level production statistics"
+        },
+        "description": "Update your API key or web account credentials for site {site_id}.",
+        "sections": {
+          "api_auth": {
+            "data": {
+              "api_key": "API key"
+            },
+            "description": "Optionally provide your SolarEdge API key. Used for real-time detailed site sensors",
+            "name": "API key authentication"
+          },
+          "web_auth": {
+            "data": {
+              "password": "Password",
+              "username": "Username"
+            },
+            "description": "Optionally provide your SolarEdge web portal credentials. Used for non real-time module-level production statistics",
+            "name": "Web account authentication"
+          }
+        },
+        "title": "Reconfigure SolarEdge"
+      },
+      "user": {
+        "data": {
+          "api_key": "API key",
+          "name": "The name of this installation",
+          "password": "Password",
+          "site_id": "The SolarEdge site ID",
+          "username": "Username"
+        },
+        "data_description": {
+          "api_key": "Optional, used for general site sensors",
+          "password": "Required if username is provided",
+          "username": "Optional, used for detailed module-level production statistics"
+        },
+        "description": "Provide your site ID and at least one method of authentication",
+        "sections": {
+          "api_auth": {
+            "data": {
+              "api_key": "API key"
+            },
+            "description": "Optionally provide your SolarEdge API key. Used for real-time detailed site sensors",
+            "name": "API key authentication"
+          },
+          "web_auth": {
+            "data": {
+              "password": "Password",
+              "username": "Username"
+            },
+            "description": "Optionally provide your SolarEdge web portal credentials. Used for non real-time module-level production statistics",
+            "name": "Web account authentication"
+          }
+        },
+        "title": "Set up your SolarEdge integration"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "batteries": {
+        "name": "Batteries"
+      },
+      "battery_charge_energy": {
+        "name": "Charge energy today"
+      },
+      "battery_discharge_energy": {
+        "name": "Discharge energy today"
+      },
+      "battery_state_of_charge": {
+        "name": "State of charge"
+      },
+      "consumption_energy": {
+        "name": "Consumed energy"
+      },
+      "current_power": {
+        "name": "Current power"
+      },
+      "energy_this_month": {
+        "name": "Energy this month"
+      },
+      "energy_this_year": {
+        "name": "Energy this year"
+      },
+      "energy_today": {
+        "name": "Energy today"
+      },
+      "feedin_energy": {
+        "name": "Exported energy"
+      },
+      "gateways": {
+        "name": "Gateways"
+      },
+      "grid_flow_direction": {
+        "name": "Grid flow direction",
+        "state": {
+          "export": "Export",
+          "import": "Import"
+        }
+      },
+      "grid_power": {
+        "name": "Grid power"
+      },
+      "inverters": {
+        "name": "Inverters"
+      },
+      "lifetime_energy": {
+        "name": "Lifetime energy"
+      },
+      "meters": {
+        "name": "Meters"
+      },
+      "power_consumption": {
+        "name": "Power consumption"
+      },
+      "production_energy": {
+        "name": "Produced energy"
+      },
+      "purchased_energy": {
+        "name": "Imported energy"
+      },
+      "selfconsumption_energy": {
+        "name": "Self-consumed energy"
+      },
+      "sensors": {
+        "name": "Sensors"
+      },
+      "site_details": {
+        "name": "Site details"
+      },
+      "solar_power": {
+        "name": "Solar power"
+      },
+      "storage_charge_energy": {
+        "name": "Storage charge energy today"
+      },
+      "storage_discharge_energy": {
+        "name": "Storage discharge energy today"
+      },
+      "storage_flow_direction": {
+        "name": "Storage flow direction",
+        "state": {
+          "charge": "Charge",
+          "discharge": "Discharge"
+        }
+      },
+      "storage_level": {
+        "name": "Storage level"
+      },
+      "storage_power": {
+        "name": "Storage power"
+      }
+    }
+  },
+  "exceptions": {
+    "api_request_failed": {
+      "message": "Error requesting {service} data: {status}"
+    },
+    "cannot_retrieve_details": {
+      "message": "Could not retrieve details from SolarEdge API"
+    },
+    "data_unavailable": {
+      "message": "{service} data not available from API"
+    },
+    "missing_data": {
+      "message": "Missing {service} data, skipping update"
+    },
+    "missing_details": {
+      "message": "Missing details data in SolarEdge response"
+    },
+    "site_not_active": {
+      "message": "The SolarEdge site is not active"
+    }
+  }
+}
