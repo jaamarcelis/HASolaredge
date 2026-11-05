@@ -1,12 +1,14 @@
 {
   "domain": "solaredge_jma",
   "name": "SolarEdge (JMA)",
-  "codeowners": [],
+  "categories": ["energy.solar_batteries"],
+  "codeowners": ["@jaamarcelis"],
   "config_flow": true,
   "dependencies": ["application_credentials"],
-  "documentation": "https://api-docs.solaredge.com/docs/developer-platform/df8kx5j4z9vi0-homeowner-and-self-access-guide",
+  "documentation": "https://github.com/jaamarcelis/HASolaredge",
   "integration_type": "device",
   "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/jaamarcelis/HASolaredge/issues",
   "requirements": [],
   "version": "2.0.0"
 }
