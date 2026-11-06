@@ -279,7 +279,7 @@ async def test_options_flow_daylight_only(
     config_entry: MockConfigEntry,
     aioclient_mock: AiohttpClientMocker,
 ) -> None:
-    """Test the daylight option requires a sunrise and a sunset entity."""
+    """Test the sunrise and sunset entities are asked in a second step."""
     await hass.config.async_set_time_zone("Europe/Amsterdam")
     hass.states.async_set("sensor.sun_next_rising", "2026-11-06T06:45:00+00:00")
     hass.states.async_set("sensor.sun_next_setting", "2026-11-06T16:00:00+00:00")
@@ -288,6 +288,7 @@ async def test_options_flow_daylight_only(
     assert await hass.config_entries.async_setup(config_entry.entry_id)
 
     result = await hass.config_entries.options.async_init(config_entry.entry_id)
+    assert CONF_SUNRISE_ENTITY not in result["data_schema"].schema
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
         {
@@ -295,19 +296,15 @@ async def test_options_flow_daylight_only(
             CONF_UPDATE_INTERVAL: 0,
             CONF_ADVANCED_POWER_FLOW: False,
             CONF_DAYLIGHT_ONLY: True,
-            CONF_SUNRISE_ENTITY: "sensor.sun_next_rising",
         },
     )
+    # The entities are only asked when the option is on
     assert result["type"] is FlowResultType.FORM
-    assert result["errors"] == {"base": "daylight_entities_required"}
+    assert result["step_id"] == "daylight"
 
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
         {
-            CONF_CREDIT_BUDGET: 2000,
-            CONF_UPDATE_INTERVAL: 0,
-            CONF_ADVANCED_POWER_FLOW: False,
-            CONF_DAYLIGHT_ONLY: True,
             CONF_SUNRISE_ENTITY: "sensor.sun_next_rising",
             CONF_SUNSET_ENTITY: "sensor.sun_next_setting",
         },
@@ -387,3 +384,30 @@ async def test_callback_without_waiting_flow(
     assert response.status == HTTPStatus.BAD_REQUEST
     response = await client.get("/api/solaredge_jma/oauth/callback")
     assert response.status == HTTPStatus.BAD_REQUEST
+
+
+@pytest.mark.usefixtures("setup_credentials")
+async def test_options_flow_daylight_off_skips_entities(
+    hass: HomeAssistant,
+    config_entry: MockConfigEntry,
+    aioclient_mock: AiohttpClientMocker,
+) -> None:
+    """Test no entities are asked when the daylight option is off."""
+    mock_api(aioclient_mock)
+    config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
+
+    result = await hass.config_entries.options.async_init(config_entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {
+            CONF_CREDIT_BUDGET: 2000,
+            CONF_UPDATE_INTERVAL: 0,
+            CONF_ADVANCED_POWER_FLOW: False,
+            CONF_DAYLIGHT_ONLY: False,
+        },
+    )
+    await hass.async_block_till_done()
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert config_entry.options[CONF_DAYLIGHT_ONLY] is False
+    assert CONF_SUNRISE_ENTITY not in config_entry.options

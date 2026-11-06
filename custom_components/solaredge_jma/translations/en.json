@@ -163,25 +163,30 @@
     }
   },
   "options": {
-    "error": {
-      "daylight_entities_required": "Select a sunrise and a sunset entity to only update during daylight."
-    },
     "step": {
+      "daylight": {
+        "data": {
+          "sunrise_entity": "Sunrise",
+          "sunset_entity": "Sunset"
+        },
+        "data_description": {
+          "sunrise_entity": "Timestamp sensor or date/time helper with the time of sunrise, for example sensor.sun_next_rising. Only the time of day is used.",
+          "sunset_entity": "Timestamp sensor or date/time helper with the time of sunset, for example sensor.sun_next_setting. Only the time of day is used."
+        },
+        "description": "Select the entities with the time of sunrise and sunset. Updates are only done between these times.",
+        "title": "Sunrise and sunset"
+      },
       "init": {
         "data": {
           "advanced_power_flow": "Use Advanced power flow",
           "credit_budget": "Monthly credit budget",
           "daylight_only": "Only update during daylight",
-          "sunrise_entity": "Sunrise",
-          "sunset_entity": "Sunset",
           "update_interval": "Update interval"
         },
         "data_description": {
           "advanced_power_flow": "Live power values from the Advanced Monitoring API (Business Pro or Enterprise tier, ~8,640 credits per month). When off, power values come from the latest 15 minutes of telemetry.",
           "credit_budget": "Credits per month this integration may use. The Free tier has 2,000 credits per month for the whole developer account.",
-          "daylight_only": "Make no API calls between sunset and sunrise. One last update is done after sunset. The saved credits are used to update more often during the day.",
-          "sunrise_entity": "Timestamp sensor or date/time helper with the time of sunrise, for example sensor.sun_next_rising. Only the time of day is used.",
-          "sunset_entity": "Timestamp sensor or date/time helper with the time of sunset, for example sensor.sun_next_setting. Only the time of day is used.",
+          "daylight_only": "Make no API calls between sunset and sunrise. One last update is done after sunset. The saved credits are used to update more often during the day. In the next step you select the sunrise and sunset entities.",
           "update_interval": "Minutes between updates, at least {min_interval}. 0 calculates the interval from the credit budget."
         },
         "description": "Current update interval: {interval} minutes, estimated usage: {credits} credits per month. Every successful API call costs 1 credit.",

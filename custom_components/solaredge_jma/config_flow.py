@@ -204,32 +204,34 @@ TIME_ENTITY_SELECTOR = EntitySelector(
 class SolarEdgeOptionsFlow(OptionsFlowWithReload):
     """Options: credit budget, update interval, Advanced power flow and daylight.
 
-    The entry is reloaded when the options change.
+    The entry is reloaded when the options change. The sunrise and sunset
+    entities are asked in a second step, only when "daylight only" is on.
     """
+
+    def __init__(self) -> None:
+        """Initialize the options flow."""
+        self._options: dict[str, Any] = {}
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Manage the options."""
-        errors: dict[str, str] = {}
         values: dict[str, Any] = dict(self.config_entry.options)
         if user_input is not None:
-            options: dict[str, Any] = {
+            self._options = {
                 CONF_CREDIT_BUDGET: int(user_input[CONF_CREDIT_BUDGET]),
                 CONF_UPDATE_INTERVAL: int(user_input.get(CONF_UPDATE_INTERVAL) or 0),
                 CONF_ADVANCED_POWER_FLOW: user_input[CONF_ADVANCED_POWER_FLOW],
                 CONF_DAYLIGHT_ONLY: user_input.get(CONF_DAYLIGHT_ONLY, False),
             }
+            if self._options[CONF_DAYLIGHT_ONLY]:
+                return await self.async_step_daylight()
+            # Keep the entities, so they are filled in when the option is
+            # switched on again
             for key in (CONF_SUNRISE_ENTITY, CONF_SUNSET_ENTITY):
-                if entity_id := user_input.get(key):
-                    options[key] = entity_id
-            if options[CONF_DAYLIGHT_ONLY] and not (
-                options.get(CONF_SUNRISE_ENTITY) and options.get(CONF_SUNSET_ENTITY)
-            ):
-                errors["base"] = "daylight_entities_required"
-            else:
-                return self.async_create_entry(data=options)
-            values = options
+                if entity_id := values.get(key):
+                    self._options[key] = entity_id
+            return self.async_create_entry(data=self._options)
 
         site_info = SiteInfo()
         runtime = getattr(self.config_entry, "runtime_data", None)
@@ -274,23 +276,42 @@ class SolarEdgeOptionsFlow(OptionsFlowWithReload):
                     CONF_DAYLIGHT_ONLY,
                     default=values.get(CONF_DAYLIGHT_ONLY, False),
                 ): BooleanSelector(),
-                probatio.Optional(
-                    CONF_SUNRISE_ENTITY,
-                    description={"suggested_value": values.get(CONF_SUNRISE_ENTITY)},
-                ): TIME_ENTITY_SELECTOR,
-                probatio.Optional(
-                    CONF_SUNSET_ENTITY,
-                    description={"suggested_value": values.get(CONF_SUNSET_ENTITY)},
-                ): TIME_ENTITY_SELECTOR,
             }
         )
         return self.async_show_form(
             step_id="init",
             data_schema=schema,
-            errors=errors,
             description_placeholders={
                 "interval": str(int(interval.total_seconds() // 60)),
                 "credits": str(credits),
                 "min_interval": str(min_minutes),
             },
         )
+
+    async def async_step_daylight(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Select the sunrise and sunset entities."""
+        if user_input is not None:
+            return self.async_create_entry(
+                data={
+                    **self._options,
+                    CONF_SUNRISE_ENTITY: user_input[CONF_SUNRISE_ENTITY],
+                    CONF_SUNSET_ENTITY: user_input[CONF_SUNSET_ENTITY],
+                }
+            )
+
+        options = self.config_entry.options
+        schema = probatio.Schema(
+            {
+                probatio.Required(
+                    CONF_SUNRISE_ENTITY,
+                    description={"suggested_value": options.get(CONF_SUNRISE_ENTITY)},
+                ): TIME_ENTITY_SELECTOR,
+                probatio.Required(
+                    CONF_SUNSET_ENTITY,
+                    description={"suggested_value": options.get(CONF_SUNSET_ENTITY)},
+                ): TIME_ENTITY_SELECTOR,
+            }
+        )
+        return self.async_show_form(step_id="daylight", data_schema=schema)

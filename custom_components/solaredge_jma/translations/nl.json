@@ -1,0 +1,197 @@
+{
+  "application_credentials": {
+    "description": "SolarEdge gebruikt OAuth 2.0 (Site Access). Log in op de [SolarEdge developer console]({developer_url}) met je SolarEdge-account, maak een **Site Access**-applicatie aan voor de Monitoring API met de scopes {scopes}, en registreer `{redirect_url}` als redirect-URI. Deze URL is gebaseerd op de Home Assistant-URL die is ingesteld onder Instellingen > Systeem > Netwerk (de externe URL, of de interne URL als er geen externe is), en je browser moet deze kunnen bereiken. Vul daarna hier de client-ID en het client-secret van die applicatie in."
+  },
+  "config": {
+    "abort": {
+      "already_configured": "Deze site is al geconfigureerd",
+      "cannot_connect": "Kan geen verbinding maken met de SolarEdge Monitoring API",
+      "missing_configuration": "De integratie is niet geconfigureerd. Voeg eerst applicatiegegevens toe.",
+      "reauth_successful": "Opnieuw autoriseren is gelukt",
+      "site_mismatch": "Op het SolarEdge-toestemmingsscherm heb je site {approved_site_id} goedgekeurd, maar je hebt site {site_id} ingevoerd. Begin opnieuw en kies site {site_id} op het toestemmingsscherm.",
+      "site_not_active": "De SolarEdge-site is niet actief",
+      "site_not_authorized": "De autorisatie geeft geen toegang tot site {site_id}. Kies deze site op het SolarEdge-toestemmingsscherm en probeer het opnieuw.",
+      "wrong_site": "De autorisatie is voor een andere site dan die van deze configuratie"
+    },
+    "error": {
+      "invalid_site_id": "De site-ID moet een getal zijn"
+    },
+    "step": {
+      "pick_implementation": {
+        "title": "Kies de authenticatiemethode"
+      },
+      "reauth_confirm": {
+        "description": "Geef Home Assistant opnieuw toegang tot SolarEdge-site {site_id}. Dit is nodig als de autorisatie is verlopen of ingetrokken, en eenmalig na de overstap van de SolarEdge API v1 (API-sleutel).",
+        "title": "SolarEdge opnieuw autoriseren"
+      },
+      "user": {
+        "data": {
+          "site_id": "Site-ID"
+        },
+        "data_description": {
+          "site_id": "De ID van je SolarEdge-site, zichtbaar in het monitoringportaal en de mySolarEdge-app. Kies op het SolarEdge-toestemmingsscherm dezelfde site."
+        },
+        "description": "Vul de site-ID in. Je wordt daarna doorgestuurd naar SolarEdge om in te loggen met je eigenaarsaccount en toegang te geven.",
+        "title": "Je SolarEdge-integratie instellen"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "batteries": {
+        "name": "Batterijen"
+      },
+      "battery_charge_energy": {
+        "name": "Geladen energie vandaag"
+      },
+      "battery_discharge_energy": {
+        "name": "Ontladen energie vandaag"
+      },
+      "battery_state_of_charge": {
+        "name": "Laadniveau"
+      },
+      "consumption_energy": {
+        "name": "Verbruikte energie"
+      },
+      "current_power": {
+        "name": "Huidig vermogen"
+      },
+      "energy_this_month": {
+        "name": "Energie deze maand"
+      },
+      "energy_this_year": {
+        "name": "Energie dit jaar"
+      },
+      "energy_today": {
+        "name": "Energie vandaag"
+      },
+      "feedin_energy": {
+        "name": "Teruggeleverde energie"
+      },
+      "gateways": {
+        "name": "Gateways"
+      },
+      "grid_flow_direction": {
+        "name": "Stroomrichting net",
+        "state": {
+          "export": "Teruglevering",
+          "import": "Afname"
+        }
+      },
+      "grid_power": {
+        "name": "Netvermogen"
+      },
+      "inverters": {
+        "name": "Omvormers"
+      },
+      "lifetime_energy": {
+        "name": "Totale opbrengst"
+      },
+      "meters": {
+        "name": "Meters"
+      },
+      "power_consumption": {
+        "name": "Verbruiksvermogen"
+      },
+      "production_energy": {
+        "name": "Opgewekte energie"
+      },
+      "purchased_energy": {
+        "name": "Afgenomen energie"
+      },
+      "selfconsumption_energy": {
+        "name": "Zelf verbruikte energie"
+      },
+      "site_details": {
+        "name": "Sitegegevens"
+      },
+      "solar_power": {
+        "name": "Zonnevermogen"
+      },
+      "storage_charge_energy": {
+        "name": "Opslag geladen energie vandaag"
+      },
+      "storage_discharge_energy": {
+        "name": "Opslag ontladen energie vandaag"
+      },
+      "storage_flow_direction": {
+        "name": "Stroomrichting opslag",
+        "state": {
+          "charge": "Laden",
+          "discharge": "Ontladen"
+        }
+      },
+      "storage_level": {
+        "name": "Opslagniveau"
+      },
+      "storage_power": {
+        "name": "Opslagvermogen"
+      }
+    }
+  },
+  "exceptions": {
+    "api_request_failed": {
+      "message": "Fout bij het opvragen van gegevens bij SolarEdge: HTTP {status}"
+    },
+    "auth_failed": {
+      "message": "SolarEdge heeft de autorisatie geweigerd, opnieuw autoriseren is nodig"
+    },
+    "cannot_connect": {
+      "message": "Kan geen verbinding maken met de SolarEdge Monitoring API"
+    },
+    "credit_limit_reached": {
+      "message": "De maandelijkse SolarEdge API-creditlimiet is bereikt"
+    },
+    "oauth_required": {
+      "message": "De SolarEdge API v1 is uitgeschakeld. Autoriseer de integratie bij SolarEdge (OAuth) om verder te gaan."
+    },
+    "rate_limited": {
+      "message": "Te veel SolarEdge API-aanroepen per minuut, later opnieuw proberen"
+    },
+    "site_not_active": {
+      "message": "De SolarEdge-site is niet actief"
+    }
+  },
+  "issues": {
+    "credit_limit_reached": {
+      "description": "De maandelijkse creditlimiet van je SolarEdge developer-account is bereikt, waardoor er tot de volgende factuurperiode geen gegevens worden bijgewerkt. Verlaag het maandelijkse creditbudget in de opties van de integratie, zodat het update-interval langer wordt, of upgrade je tier in de SolarEdge developer console.",
+      "title": "SolarEdge API-creditlimiet bereikt"
+    },
+    "power_flow_tier": {
+      "description": "De Advanced power flow API is niet beschikbaar voor je SolarEdge developer-account ({detail}). Hiervoor is het Business Pro- of Enterprise-tier nodig. Zet de optie Advanced power flow van de integratie uit; de vermogenssensoren komen dan uit telemetrie per kwartier.",
+      "title": "SolarEdge power flow niet beschikbaar"
+    }
+  },
+  "options": {
+    "step": {
+      "daylight": {
+        "data": {
+          "sunrise_entity": "Zonsopgang",
+          "sunset_entity": "Zonsondergang"
+        },
+        "data_description": {
+          "sunrise_entity": "Timestamp-sensor of datum/tijd-helper met het tijdstip van zonsopgang, bijvoorbeeld sensor.sun_next_rising. Alleen het tijdstip van de dag wordt gebruikt.",
+          "sunset_entity": "Timestamp-sensor of datum/tijd-helper met het tijdstip van zonsondergang, bijvoorbeeld sensor.sun_next_setting. Alleen het tijdstip van de dag wordt gebruikt."
+        },
+        "description": "Kies de entiteiten met het tijdstip van zonsopgang en zonsondergang. Er wordt alleen tussen deze tijden bijgewerkt.",
+        "title": "Zonsopgang en zonsondergang"
+      },
+      "init": {
+        "data": {
+          "advanced_power_flow": "Advanced power flow gebruiken",
+          "credit_budget": "Maandelijks creditbudget",
+          "daylight_only": "Alleen overdag bijwerken",
+          "update_interval": "Update-interval"
+        },
+        "data_description": {
+          "advanced_power_flow": "Live vermogens uit de Advanced Monitoring API (Business Pro- of Enterprise-tier, ca. 8.640 credits per maand). Staat dit uit, dan komen de vermogens uit het laatste kwartier van de telemetrie.",
+          "credit_budget": "Aantal credits per maand dat deze integratie mag gebruiken. Het Free-tier heeft 2.000 credits per maand voor het hele developer-account.",
+          "daylight_only": "Geen API-aanroepen tussen zonsondergang en zonsopgang. Na zonsondergang volgt nog één laatste update. De bespaarde credits worden gebruikt om overdag vaker bij te werken. In de volgende stap kies je de entiteiten voor zonsopgang en zonsondergang.",
+          "update_interval": "Minuten tussen updates, minimaal {min_interval}. Bij 0 wordt het interval berekend uit het creditbudget."
+        },
+        "description": "Huidig update-interval: {interval} minuten, geschat verbruik: {credits} credits per maand. Elke geslaagde API-aanroep kost 1 credit.",
+        "title": "SolarEdge-opties"
+      }
+    }
+  }
+}

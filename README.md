@@ -104,10 +104,11 @@ Pas het aan via **Configureren** bij de integratie:
   maand. Staat deze optie uit, dan komen de vermogenssensoren (zon, net, verbruik,
   batterij) uit het laatste kwartier van de telemetrie.
 - **Alleen overdag updaten:** tussen zonsondergang en zonsopgang worden geen
-  API-aanroepen gedaan. Kies daarvoor twee entiteiten met de tijd van
-  **zonsopgang** en **zonsondergang**: een timestamp-sensor (bijvoorbeeld
-  `sensor.sun_next_rising` en `sensor.sun_next_setting` van de Sun-integratie) of
-  een datum/tijd-helper (`input_datetime`). Alleen het tijdstip van de dag telt,
+  API-aanroepen gedaan. Vink je dit aan, dan kies je in een volgende stap twee
+  entiteiten met de tijd van **zonsopgang** en **zonsondergang**: een
+  timestamp-sensor (bijvoorbeeld `sensor.sun_next_rising` en
+  `sensor.sun_next_setting` van de Sun-integratie) of een datum/tijd-helper
+  (`input_datetime`). Alleen het tijdstip van de dag telt,
   dus "volgende zonsopgang" werkt ook na zonsopgang.
 
 ### Alleen overdag updaten
