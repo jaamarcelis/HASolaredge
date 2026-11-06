@@ -12,8 +12,6 @@ from .coordinator import (
     SolarEdgeMeasurementsCoordinator,
     SolarEdgePowerFlowCoordinator,
     SolarEdgeSiteInfoCoordinator,
-    calculate_update_interval,
-    estimate_credits_per_month,
 )
 from .types import SolarEdgeConfigEntry, SolarEdgeData
 
@@ -52,17 +50,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: SolarEdgeConfigEntry) ->
         )
 
     options = dict(entry.options)
-    update_interval = calculate_update_interval(options, site_info.data)
-    credits = estimate_credits_per_month(options, site_info.data, update_interval)
+    measurements = SolarEdgeMeasurementsCoordinator(
+        hass, entry, client, site_id, site_info
+    )
     LOGGER.debug(
         "Site %s: measurements every %s, estimated %s credits per month",
         site_id,
-        update_interval,
-        credits,
-    )
-
-    measurements = SolarEdgeMeasurementsCoordinator(
-        hass, entry, client, site_id, site_info, update_interval
+        measurements.update_interval,
+        measurements.estimated_credits_per_month,
     )
     await measurements.async_config_entry_first_refresh()
 
@@ -77,8 +72,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: SolarEdgeConfigEntry) ->
         site_info=site_info,
         measurements=measurements,
         power_flow=power_flow,
-        update_interval=update_interval,
-        estimated_credits_per_month=credits,
     )
 
     # Register the site device up front so per-battery devices can resolve it

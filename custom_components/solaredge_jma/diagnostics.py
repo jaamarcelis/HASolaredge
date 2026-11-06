@@ -5,6 +5,7 @@ from typing import Any
 from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.core import HomeAssistant
 
+from .coordinator import daylight_window
 from .types import SolarEdgeConfigEntry
 
 TO_REDACT = {
@@ -42,8 +43,19 @@ async def async_get_config_entry_diagnostics(
             "data": async_redact_data(dict(entry.data), TO_REDACT),
             "options": dict(entry.options),
         },
-        "update_interval_minutes": runtime.update_interval.total_seconds() / 60,
-        "estimated_credits_per_month": runtime.estimated_credits_per_month,
+        "update_interval_minutes": (
+            interval.total_seconds() / 60
+            if (interval := runtime.measurements.update_interval)
+            else None
+        ),
+        "estimated_credits_per_month": (
+            runtime.measurements.estimated_credits_per_month
+        ),
+        "daylight_window": (
+            {"sunrise": window[0].isoformat(), "sunset": window[1].isoformat()}
+            if (window := daylight_window(hass, dict(entry.options)))
+            else None
+        ),
         "coordinators": {
             "site_info": runtime.site_info.last_update_success,
             "measurements": runtime.measurements.last_update_success,

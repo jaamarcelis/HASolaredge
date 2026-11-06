@@ -7,12 +7,13 @@ and the measurement interval is derived from the configured monthly budget.
 
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
 import math
 from typing import TYPE_CHECKING, Any, override
 
 from aiohttp import ClientError
 
+from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers import issue_registry as ir
@@ -30,8 +31,12 @@ from .api import (
 from .const import (
     CONF_ADVANCED_POWER_FLOW,
     CONF_CREDIT_BUDGET,
+    CONF_DAYLIGHT_ONLY,
+    CONF_SUNRISE_ENTITY,
+    CONF_SUNSET_ENTITY,
     CONF_UPDATE_INTERVAL,
     CREDIT_BUDGET_USAGE,
+    DAYLIGHT_MARGIN,
     DEFAULT_CREDIT_BUDGET,
     DOMAIN,
     ISSUE_CREDIT_LIMIT,
@@ -41,7 +46,6 @@ from .const import (
     LOGGER,
     MAX_UPDATE_INTERVAL,
     MIN_UPDATE_INTERVAL,
-    MINUTES_PER_MONTH,
     POWER_FLOW_CALLS_PER_DAY,
     POWER_FLOW_UPDATE_INTERVAL,
     SITE_INFO_CALLS_PER_DAY,
@@ -96,6 +100,8 @@ INVENTORY_CATEGORIES = {
     "BATTERY": "batteries",
 }
 QUARTER_HOUR_IN_HOURS = 0.25
+HOURS_PER_DAY = 24
+DAYS_PER_MONTH = 30
 
 
 @dataclass
@@ -145,29 +151,44 @@ def calls_per_measurement_cycle(site_info: SiteInfo) -> int:
     return calls
 
 
-def fixed_calls_per_month(advanced_power_flow: bool) -> int:
-    """Return the credits per month used outside of the measurement cycle."""
-    per_day = SITE_INFO_CALLS_PER_DAY + LIFETIME_CALLS_PER_DAY
+def fixed_calls_per_month(
+    advanced_power_flow: bool, active_hours: float = HOURS_PER_DAY
+) -> int:
+    """Return the credits per month used outside of the measurement cycle.
+
+    The lifetime energy and power flow are only fetched during the active hours
+    of the day; the site info is always fetched.
+    """
+    per_day = SITE_INFO_CALLS_PER_DAY + math.ceil(
+        LIFETIME_CALLS_PER_DAY * active_hours / HOURS_PER_DAY
+    )
     if advanced_power_flow:
-        per_day += POWER_FLOW_CALLS_PER_DAY
-    return per_day * 30
+        per_day += math.ceil(POWER_FLOW_CALLS_PER_DAY * active_hours / HOURS_PER_DAY)
+    return per_day * DAYS_PER_MONTH
 
 
 def calculate_update_interval(
-    options: dict[str, Any], site_info: SiteInfo
+    options: dict[str, Any],
+    site_info: SiteInfo,
+    active_hours: float = HOURS_PER_DAY,
 ) -> timedelta:
-    """Return the measurement update interval for the configured budget."""
+    """Return the measurement update interval for the configured budget.
+
+    active_hours is the number of hours per day in which updates are done
+    (less than 24 with the "daylight only" option).
+    """
     if interval := options.get(CONF_UPDATE_INTERVAL):
         return max(MIN_UPDATE_INTERVAL, timedelta(minutes=int(interval)))
 
     budget = options.get(CONF_CREDIT_BUDGET, DEFAULT_CREDIT_BUDGET)
     available = budget * CREDIT_BUDGET_USAGE - fixed_calls_per_month(
-        options.get(CONF_ADVANCED_POWER_FLOW, False)
+        options.get(CONF_ADVANCED_POWER_FLOW, False), active_hours
     )
     if available <= 0:
         return MAX_UPDATE_INTERVAL
+    active_minutes = active_hours * 60 * DAYS_PER_MONTH
     minutes = math.ceil(
-        calls_per_measurement_cycle(site_info) * MINUTES_PER_MONTH / available
+        calls_per_measurement_cycle(site_info) * active_minutes / available
     )
     return min(
         MAX_UPDATE_INTERVAL, max(MIN_UPDATE_INTERVAL, timedelta(minutes=minutes))
@@ -175,14 +196,87 @@ def calculate_update_interval(
 
 
 def estimate_credits_per_month(
-    options: dict[str, Any], site_info: SiteInfo, interval: timedelta
+    options: dict[str, Any],
+    site_info: SiteInfo,
+    interval: timedelta,
+    active_hours: float = HOURS_PER_DAY,
 ) -> int:
     """Return the estimated credit usage per month."""
-    cycles = MINUTES_PER_MONTH / (interval.total_seconds() / 60)
+    active_minutes = active_hours * 60 * DAYS_PER_MONTH
+    cycles = active_minutes / (interval.total_seconds() / 60)
     return round(
         cycles * calls_per_measurement_cycle(site_info)
-        + fixed_calls_per_month(options.get(CONF_ADVANCED_POWER_FLOW, False))
+        + fixed_calls_per_month(
+            options.get(CONF_ADVANCED_POWER_FLOW, False), active_hours
+        )
     )
+
+
+def entity_time_of_day(hass: HomeAssistant, entity_id: str | None) -> time | None:
+    """Return the local time of day of a timestamp sensor or input_datetime.
+
+    Only the time of day is used, so sensors with the next sunrise or sunset
+    (which move to the next day once passed) can be used.
+    """
+    if not entity_id or (state := hass.states.get(entity_id)) is None:
+        return None
+    if state.state in (STATE_UNKNOWN, STATE_UNAVAILABLE, ""):
+        return None
+    if (moment := dt_util.parse_datetime(state.state)) is not None:
+        if moment.tzinfo is not None:
+            moment = dt_util.as_local(moment)
+        return moment.time()
+    return dt_util.parse_time(state.state)
+
+
+def daylight_window(
+    hass: HomeAssistant, options: dict[str, Any]
+) -> tuple[time, time] | None:
+    """Return the configured (sunrise, sunset) times of day.
+
+    Returns None when the "daylight only" option is off or an entity has no
+    valid state.
+    """
+    if not options.get(CONF_DAYLIGHT_ONLY):
+        return None
+    sunrise = entity_time_of_day(hass, options.get(CONF_SUNRISE_ENTITY))
+    sunset = entity_time_of_day(hass, options.get(CONF_SUNSET_ENTITY))
+    if sunrise is None or sunset is None:
+        return None
+    return sunrise, sunset
+
+
+def is_daylight(now: time, sunrise: time, sunset: time) -> bool:
+    """Return True if a time of day is between sunrise and sunset.
+
+    An invalid window (sunrise not before sunset) counts as daylight, so data
+    keeps being updated.
+    """
+    if sunrise >= sunset:
+        return True
+    return sunrise <= now < sunset
+
+
+def _seconds_of_day(value: time) -> int:
+    """Return the number of seconds since midnight."""
+    return value.hour * 3600 + value.minute * 60 + value.second
+
+
+def daylight_hours(window: tuple[time, time] | None) -> float:
+    """Return the hours per day in which updates are done, including a margin."""
+    if window is None:
+        return HOURS_PER_DAY
+    sunrise, sunset = window
+    seconds = _seconds_of_day(sunset) - _seconds_of_day(sunrise)
+    if seconds <= 0:
+        return HOURS_PER_DAY
+    hours = (seconds + DAYLIGHT_MARGIN.total_seconds()) / 3600
+    return min(HOURS_PER_DAY, hours)
+
+
+def active_hours_per_day(hass: HomeAssistant, options: dict[str, Any]) -> float:
+    """Return the hours per day in which measurements are updated."""
+    return daylight_hours(daylight_window(hass, options))
 
 
 class SolarEdgeCoordinator[DataT](DataUpdateCoordinator[DataT]):
@@ -209,6 +303,35 @@ class SolarEdgeCoordinator[DataT](DataUpdateCoordinator[DataT]):
         )
         self.client = client
         self.site_id = site_id
+        self._was_daylight = False
+
+    def _skip_outside_daylight(self) -> bool:
+        """Return True if the update is skipped because it is dark.
+
+        With the "daylight only" option, no API calls are made between sunset
+        and sunrise. One last update is done after sunset (so the day totals
+        are complete), and an update is always done when there is no data yet.
+        """
+        options = self.config_entry.options
+        if not options.get(CONF_DAYLIGHT_ONLY):
+            return False
+        window = daylight_window(self.hass, dict(options))
+        if window is None:
+            LOGGER.debug(
+                "%s: sunrise or sunset entity has no valid time, updating anyway",
+                self.name,
+            )
+            return False
+        daylight = is_daylight(dt_util.now().time(), *window)
+        was_daylight = self._was_daylight
+        self._was_daylight = daylight
+        if daylight or self.data is None:
+            return False
+        if was_daylight:
+            LOGGER.debug("%s: last update after sunset", self.name)
+            return False
+        LOGGER.debug("%s: skipping update outside daylight hours", self.name)
+        return True
 
     async def _async_call[T](self, call: Callable[[], Awaitable[T]]) -> T:
         """Perform an API call and map errors onto coordinator errors."""
@@ -333,21 +456,47 @@ class SolarEdgeMeasurementsCoordinator(SolarEdgeCoordinator[dict[str, Any]]):
         client: SolarEdgeClient,
         site_id: str,
         site_info: SolarEdgeSiteInfoCoordinator,
-        update_interval: timedelta,
     ) -> None:
         """Initialize the coordinator."""
         super().__init__(
-            hass, config_entry, client, site_id, "measurements", update_interval
+            hass, config_entry, client, site_id, "measurements", MIN_UPDATE_INTERVAL
         )
         self.site_info = site_info
+        self.estimated_credits_per_month = 0
+        self.update_budget()
         self._lifetime_energy: float | None = None
         self._lifetime_updated: datetime | None = None
         self._year_supported = True
         self._device_data_available = True
 
+    def update_budget(self) -> None:
+        """Calculate the update interval and the credit estimate.
+
+        Done on every update, so the interval follows the daylight hours of the
+        "daylight only" option through the seasons.
+        """
+        options = dict(self.config_entry.options)
+        site_info = self.site_info.data or SiteInfo()
+        active_hours = active_hours_per_day(self.hass, options)
+        interval = calculate_update_interval(options, site_info, active_hours)
+        if interval != self.update_interval:
+            LOGGER.debug(
+                "Site %s: measurements every %s (%.1f active hours per day)",
+                self.site_id,
+                interval,
+                active_hours,
+            )
+        self.update_interval = interval
+        self.estimated_credits_per_month = estimate_credits_per_month(
+            options, site_info, interval, active_hours
+        )
+
     @override
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch the measurements."""
+        self.update_budget()
+        if self._skip_outside_daylight():
+            return self.data
         now = dt_util.now()
         start_of_day = dt_util.start_of_local_day(now)
         site_info = self.site_info.data or SiteInfo()
@@ -585,6 +734,8 @@ class SolarEdgePowerFlowCoordinator(SolarEdgeCoordinator[dict[str, Any]]):
         """Fetch the power flow."""
         if self.tier_insufficient:
             return {}
+        if self._skip_outside_daylight():
+            return self.data
         try:
             response = await self._async_call(
                 lambda: self.client.get_power_flow(self.site_id)

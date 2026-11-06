@@ -20,6 +20,8 @@ from homeassistant.helpers import config_entry_oauth2_flow
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
     BooleanSelector,
+    EntitySelector,
+    EntitySelectorConfig,
     NumberSelector,
     NumberSelectorConfig,
     NumberSelectorMode,
@@ -34,7 +36,10 @@ from .api import (
 from .const import (
     CONF_ADVANCED_POWER_FLOW,
     CONF_CREDIT_BUDGET,
+    CONF_DAYLIGHT_ONLY,
     CONF_SITE_ID,
+    CONF_SUNRISE_ENTITY,
+    CONF_SUNSET_ENTITY,
     CONF_UPDATE_INTERVAL,
     DEFAULT_CREDIT_BUDGET,
     DOMAIN,
@@ -43,6 +48,7 @@ from .const import (
 )
 from .coordinator import (
     SiteInfo,
+    active_hours_per_day,
     calculate_update_interval,
     estimate_credits_per_month,
 )
@@ -184,8 +190,19 @@ class SolarEdgeOAuth2FlowHandler(
         )
 
 
+# Timestamp sensors (e.g. sensor.sun_next_rising) and input_datetime helpers
+TIME_ENTITY_SELECTOR = EntitySelector(
+    EntitySelectorConfig(
+        filter=[
+            {"domain": "sensor", "device_class": "timestamp"},
+            {"domain": "input_datetime"},
+        ]
+    )
+)
+
+
 class SolarEdgeOptionsFlow(OptionsFlowWithReload):
-    """Options: credit budget, update interval and Advanced power flow.
+    """Options: credit budget, update interval, Advanced power flow and daylight.
 
     The entry is reloaded when the options change.
     """
@@ -194,28 +211,41 @@ class SolarEdgeOptionsFlow(OptionsFlowWithReload):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Manage the options."""
+        errors: dict[str, str] = {}
+        values: dict[str, Any] = dict(self.config_entry.options)
         if user_input is not None:
-            options = {
+            options: dict[str, Any] = {
                 CONF_CREDIT_BUDGET: int(user_input[CONF_CREDIT_BUDGET]),
                 CONF_UPDATE_INTERVAL: int(user_input.get(CONF_UPDATE_INTERVAL) or 0),
                 CONF_ADVANCED_POWER_FLOW: user_input[CONF_ADVANCED_POWER_FLOW],
+                CONF_DAYLIGHT_ONLY: user_input.get(CONF_DAYLIGHT_ONLY, False),
             }
-            return self.async_create_entry(data=options)
+            for key in (CONF_SUNRISE_ENTITY, CONF_SUNSET_ENTITY):
+                if entity_id := user_input.get(key):
+                    options[key] = entity_id
+            if options[CONF_DAYLIGHT_ONLY] and not (
+                options.get(CONF_SUNRISE_ENTITY) and options.get(CONF_SUNSET_ENTITY)
+            ):
+                errors["base"] = "daylight_entities_required"
+            else:
+                return self.async_create_entry(data=options)
+            values = options
 
-        options = self.config_entry.options
         site_info = SiteInfo()
         runtime = getattr(self.config_entry, "runtime_data", None)
         if runtime is not None and runtime.site_info.data is not None:
             site_info = runtime.site_info.data
-        interval = calculate_update_interval(dict(options), site_info)
-        credits = estimate_credits_per_month(dict(options), site_info, interval)
+        current = dict(self.config_entry.options)
+        active_hours = active_hours_per_day(self.hass, current)
+        interval = calculate_update_interval(current, site_info, active_hours)
+        credits = estimate_credits_per_month(current, site_info, interval, active_hours)
 
         min_minutes = int(MIN_UPDATE_INTERVAL.total_seconds() // 60)
         schema = probatio.Schema(
             {
                 probatio.Required(
                     CONF_CREDIT_BUDGET,
-                    default=options.get(CONF_CREDIT_BUDGET, DEFAULT_CREDIT_BUDGET),
+                    default=values.get(CONF_CREDIT_BUDGET, DEFAULT_CREDIT_BUDGET),
                 ): NumberSelector(
                     NumberSelectorConfig(
                         min=MIN_CREDIT_BUDGET,
@@ -226,7 +256,7 @@ class SolarEdgeOptionsFlow(OptionsFlowWithReload):
                 ),
                 probatio.Optional(
                     CONF_UPDATE_INTERVAL,
-                    default=options.get(CONF_UPDATE_INTERVAL, 0),
+                    default=values.get(CONF_UPDATE_INTERVAL, 0),
                 ): NumberSelector(
                     NumberSelectorConfig(
                         min=0,
@@ -238,13 +268,26 @@ class SolarEdgeOptionsFlow(OptionsFlowWithReload):
                 ),
                 probatio.Required(
                     CONF_ADVANCED_POWER_FLOW,
-                    default=options.get(CONF_ADVANCED_POWER_FLOW, False),
+                    default=values.get(CONF_ADVANCED_POWER_FLOW, False),
                 ): BooleanSelector(),
+                probatio.Required(
+                    CONF_DAYLIGHT_ONLY,
+                    default=values.get(CONF_DAYLIGHT_ONLY, False),
+                ): BooleanSelector(),
+                probatio.Optional(
+                    CONF_SUNRISE_ENTITY,
+                    description={"suggested_value": values.get(CONF_SUNRISE_ENTITY)},
+                ): TIME_ENTITY_SELECTOR,
+                probatio.Optional(
+                    CONF_SUNSET_ENTITY,
+                    description={"suggested_value": values.get(CONF_SUNSET_ENTITY)},
+                ): TIME_ENTITY_SELECTOR,
             }
         )
         return self.async_show_form(
             step_id="init",
             data_schema=schema,
+            errors=errors,
             description_placeholders={
                 "interval": str(int(interval.total_seconds() // 60)),
                 "credits": str(credits),

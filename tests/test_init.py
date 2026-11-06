@@ -102,7 +102,8 @@ async def test_setup_and_sensors(
     assert value("gateways") == "0"
 
     # Free tier, with a battery: measurements every 80 minutes
-    assert config_entry.runtime_data.update_interval.total_seconds() == 80 * 60
+    interval = config_entry.runtime_data.measurements.update_interval
+    assert interval.total_seconds() == 80 * 60
 
 
 @pytest.mark.usefixtures("setup_credentials")

@@ -103,6 +103,26 @@ Pas het aan via **Configureren** bij de integratie:
   het **Business Pro**- of Enterprise-tier en kost ongeveer 8.640 credits per
   maand. Staat deze optie uit, dan komen de vermogenssensoren (zon, net, verbruik,
   batterij) uit het laatste kwartier van de telemetrie.
+- **Alleen overdag updaten:** tussen zonsondergang en zonsopgang worden geen
+  API-aanroepen gedaan. Kies daarvoor twee entiteiten met de tijd van
+  **zonsopgang** en **zonsondergang**: een timestamp-sensor (bijvoorbeeld
+  `sensor.sun_next_rising` en `sensor.sun_next_setting` van de Sun-integratie) of
+  een datum/tijd-helper (`input_datetime`). Alleen het tijdstip van de dag telt,
+  dus "volgende zonsopgang" werkt ook na zonsopgang.
+
+### Alleen overdag updaten
+
+- Na zonsondergang volgt nog **één laatste update**, zodat de dagtotalen compleet
+  zijn. Daarna blijven de sensoren tot zonsopgang op hun laatste waarde staan.
+- De bespaarde nachtcredits worden overdag gebruikt: het interval wordt berekend
+  over de daglichturen plus 1 uur marge. Bij 9 uur daglicht en het Free-tier met
+  batterij wordt dat **33 minuten** in plaats van 80. Het interval schuift
+  automatisch mee met de seizoenen.
+- Ook Advanced power flow peilt dan alleen overdag.
+- Is een van de entiteiten onbekend of niet beschikbaar, dan wordt gewoon de hele
+  dag geüpdatet (met het interval voor 24 uur).
+- *Energie vandaag* toont na middernacht tot zonsopgang nog de waarde van
+  gisteren; bij de eerste update na zonsopgang wordt dat bijgewerkt.
 
 Is de maandlimiet bereikt, of is power flow niet beschikbaar voor je tier, dan
 verschijnt er een melding onder *Reparaties*.

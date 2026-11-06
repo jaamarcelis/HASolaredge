@@ -17,6 +17,9 @@ from custom_components.solaredge_jma.application_credentials import (
 from custom_components.solaredge_jma.const import (
     CONF_ADVANCED_POWER_FLOW,
     CONF_CREDIT_BUDGET,
+    CONF_DAYLIGHT_ONLY,
+    CONF_SUNRISE_ENTITY,
+    CONF_SUNSET_ENTITY,
     CONF_UPDATE_INTERVAL,
     DOMAIN,
     OAUTH2_AUTHORIZE_URL,
@@ -265,8 +268,61 @@ async def test_options_flow(
     await hass.async_block_till_done()
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert config_entry.options[CONF_CREDIT_BUDGET] == 20000
-    assert config_entry.runtime_data.update_interval.total_seconds() == 15 * 60
+    interval = config_entry.runtime_data.measurements.update_interval
+    assert interval.total_seconds() == 15 * 60
     assert SITE_RESPONSE["name"] == config_entry.title
+
+
+@pytest.mark.usefixtures("setup_credentials")
+async def test_options_flow_daylight_only(
+    hass: HomeAssistant,
+    config_entry: MockConfigEntry,
+    aioclient_mock: AiohttpClientMocker,
+) -> None:
+    """Test the daylight option requires a sunrise and a sunset entity."""
+    await hass.config.async_set_time_zone("Europe/Amsterdam")
+    hass.states.async_set("sensor.sun_next_rising", "2026-11-06T06:45:00+00:00")
+    hass.states.async_set("sensor.sun_next_setting", "2026-11-06T16:00:00+00:00")
+    mock_api(aioclient_mock)
+    config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
+
+    result = await hass.config_entries.options.async_init(config_entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {
+            CONF_CREDIT_BUDGET: 2000,
+            CONF_UPDATE_INTERVAL: 0,
+            CONF_ADVANCED_POWER_FLOW: False,
+            CONF_DAYLIGHT_ONLY: True,
+            CONF_SUNRISE_ENTITY: "sensor.sun_next_rising",
+        },
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "daylight_entities_required"}
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {
+            CONF_CREDIT_BUDGET: 2000,
+            CONF_UPDATE_INTERVAL: 0,
+            CONF_ADVANCED_POWER_FLOW: False,
+            CONF_DAYLIGHT_ONLY: True,
+            CONF_SUNRISE_ENTITY: "sensor.sun_next_rising",
+            CONF_SUNSET_ENTITY: "sensor.sun_next_setting",
+        },
+    )
+    await hass.async_block_till_done()
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert config_entry.options[CONF_DAYLIGHT_ONLY] is True
+    assert config_entry.options[CONF_SUNSET_ENTITY] == "sensor.sun_next_setting"
+    # Fewer active hours: updates more often than the 80 minutes for 24 hours
+    interval = config_entry.runtime_data.measurements.update_interval
+    assert interval.total_seconds() < 80 * 60
+
+    # The estimate in the form follows the daylight hours
+    result = await hass.config_entries.options.async_init(config_entry.entry_id)
+    assert int(result["description_placeholders"]["interval"]) < 80
 
 
 @pytest.mark.usefixtures("setup_credentials")

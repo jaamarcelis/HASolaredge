@@ -154,25 +154,34 @@
   },
   "issues": {
     "credit_limit_reached": {
-      "title": "SolarEdge API credit limit reached",
-      "description": "The monthly credit limit of your SolarEdge developer account is reached, so no data is updated until the next billing cycle. Lower the monthly credit budget in the integration options so the update interval becomes longer, or upgrade your tier in the SolarEdge developer console."
+      "description": "The monthly credit limit of your SolarEdge developer account is reached, so no data is updated until the next billing cycle. Lower the monthly credit budget in the integration options so the update interval becomes longer, or upgrade your tier in the SolarEdge developer console.",
+      "title": "SolarEdge API credit limit reached"
     },
     "power_flow_tier": {
-      "title": "SolarEdge power flow not available",
-      "description": "The Advanced power flow API is not available for your SolarEdge developer account ({detail}). It requires the Business Pro or Enterprise tier. Disable the Advanced power flow option of the integration; the power sensors are then based on 15-minute telemetry."
+      "description": "The Advanced power flow API is not available for your SolarEdge developer account ({detail}). It requires the Business Pro or Enterprise tier. Disable the Advanced power flow option of the integration; the power sensors are then based on 15-minute telemetry.",
+      "title": "SolarEdge power flow not available"
     }
   },
   "options": {
+    "error": {
+      "daylight_entities_required": "Select a sunrise and a sunset entity to only update during daylight."
+    },
     "step": {
       "init": {
         "data": {
           "advanced_power_flow": "Use Advanced power flow",
           "credit_budget": "Monthly credit budget",
+          "daylight_only": "Only update during daylight",
+          "sunrise_entity": "Sunrise",
+          "sunset_entity": "Sunset",
           "update_interval": "Update interval"
         },
         "data_description": {
           "advanced_power_flow": "Live power values from the Advanced Monitoring API (Business Pro or Enterprise tier, ~8,640 credits per month). When off, power values come from the latest 15 minutes of telemetry.",
           "credit_budget": "Credits per month this integration may use. The Free tier has 2,000 credits per month for the whole developer account.",
+          "daylight_only": "Make no API calls between sunset and sunrise. One last update is done after sunset. The saved credits are used to update more often during the day.",
+          "sunrise_entity": "Timestamp sensor or date/time helper with the time of sunrise, for example sensor.sun_next_rising. Only the time of day is used.",
+          "sunset_entity": "Timestamp sensor or date/time helper with the time of sunset, for example sensor.sun_next_setting. Only the time of day is used.",
           "update_interval": "Minutes between updates, at least {min_interval}. 0 calculates the interval from the credit budget."
         },
         "description": "Current update interval: {interval} minutes, estimated usage: {credits} credits per month. Every successful API call costs 1 credit.",

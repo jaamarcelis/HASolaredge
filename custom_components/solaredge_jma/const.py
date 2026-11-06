@@ -15,6 +15,9 @@ CONF_SITE_ID = "site_id"
 CONF_CREDIT_BUDGET: Final = "credit_budget"
 CONF_UPDATE_INTERVAL: Final = "update_interval"
 CONF_ADVANCED_POWER_FLOW: Final = "advanced_power_flow"
+CONF_DAYLIGHT_ONLY: Final = "daylight_only"
+CONF_SUNRISE_ENTITY: Final = "sunrise_entity"
+CONF_SUNSET_ENTITY: Final = "sunset_entity"
 
 # SolarEdge Monitoring API v2 / SolarEdge Connect (OAuth 2.0)
 API_BASE_URL: Final = "https://monitoringapi.solaredge.com/v2"
@@ -33,7 +36,6 @@ DEFAULT_CREDIT_BUDGET: Final = 2000  # Free tier
 MIN_CREDIT_BUDGET: Final = 100
 # Keep a safety margin so the monthly budget is never fully used
 CREDIT_BUDGET_USAGE: Final = 0.9
-MINUTES_PER_MONTH: Final = 30 * 24 * 60
 
 # Update intervals
 MIN_UPDATE_INTERVAL: Final = timedelta(minutes=15)  # API minimum resolution
@@ -41,6 +43,10 @@ MAX_UPDATE_INTERVAL: Final = timedelta(hours=24)
 SITE_INFO_UPDATE_INTERVAL: Final = timedelta(hours=24)
 LIFETIME_ENERGY_UPDATE_INTERVAL: Final = timedelta(hours=6)
 POWER_FLOW_UPDATE_INTERVAL: Final = timedelta(minutes=5)
+# Added to the daylight duration when the update interval is calculated for the
+# "daylight only" option: days get longer during a month and the last update
+# after sunset also costs credits.
+DAYLIGHT_MARGIN: Final = timedelta(hours=1)
 
 # Credits per day used by calls that are not part of the measurement cycle
 SITE_INFO_CALLS_PER_DAY: Final = 2  # site details + device list
